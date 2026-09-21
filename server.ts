@@ -1,5 +1,4 @@
 import { createServer } from 'http';
-import { parse } from 'url';
 import next from 'next';
 import { Server as SocketIOServer } from 'socket.io';
 import { RoomManager } from './src/server/roomManager';
@@ -20,8 +19,8 @@ const roomManager = new RoomManager();
 app.prepare().then(() => {
   const httpServer = createServer((req, res) => {
     try {
-      const parsedUrl = parse(req.url || '', true);
-      handle(req, res, parsedUrl);
+      const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+      handle(req, res, parsedUrl as any);
     } catch (err) {
       console.error('Error handling HTTP request:', err);
       res.statusCode = 500;
