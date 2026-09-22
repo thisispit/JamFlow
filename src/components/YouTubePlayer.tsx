@@ -706,9 +706,9 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                   <button
                     onClick={handleTogglePlay}
                     disabled={!canControl || !currentTrack}
-                    className="w-13 h-13 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] text-white"
+                    className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] text-white active:scale-95 transition-all"
                   >
-                    {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                    {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
                   </button>
                   <button onClick={onSkipNext} disabled={!canControl || !hasQueue} className="p-2 text-zinc-400 hover:text-white disabled:opacity-20">
                     <FastForward className="w-4 h-4" />
@@ -900,7 +900,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 <button
                   onClick={handleTogglePlay}
                   disabled={!canControl || !currentTrack}
-                  className={`w-13 h-13 rounded-full flex items-center justify-center transition-all shadow-xl ${
+                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl ${
                     !canControl || !currentTrack
                       ? 'bg-white/10 text-white/20 cursor-not-allowed'
                       : 'bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] text-white hover:scale-105 active:scale-95 shadow-[0_0_22px_rgba(139,92,246,0.5),inset_0_1px_0_rgba(255,255,255,0.3)]'
@@ -908,9 +908,9 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                   title={!canControl ? 'Only Host or DJ can control playback' : isPlaying ? 'Pause' : 'Play'}
                 >
                   {isPlaying ? (
-                    <Pause className="w-5 h-5 fill-current" />
+                    <Pause className="w-6 h-6 fill-current" />
                   ) : (
-                    <Play className="w-5 h-5 fill-current ml-0.5" />
+                    <Play className="w-6 h-6 fill-current ml-0.5" />
                   )}
                 </button>
 
@@ -1158,7 +1158,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           <button
             onClick={handleTogglePlay}
             disabled={!canControl || !currentTrack}
-            className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all shadow-xl ${
+            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl ${
               !canControl || !currentTrack
                 ? 'bg-white/10 text-white/20 cursor-not-allowed'
                 : 'bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] text-white hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(139,92,246,0.45)]'
