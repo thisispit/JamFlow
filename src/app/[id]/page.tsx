@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   Radio, Share2, Check, LogOut, Users, Crown, Copy,
   AlertCircle, ListMusic, MessageSquare, MessageCircle, Send, Smartphone, X,
-  Settings, Shield, Sparkles,
+  Settings, Shield, Sparkles, Maximize2, Minimize2, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -38,6 +38,7 @@ export default function RoomPage() {
 
   // Mobile bottom panel tab: 'queue' | 'chat'
   const [mobileTab, setMobileTab] = useState<'queue' | 'chat'>('queue');
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   // Desktop right sidebar tab
   const [desktopTab, setDesktopTab] = useState<'queue' | 'chat'>('queue');
   const [unreadChatCount, setUnreadChatCount] = useState(0);
@@ -395,20 +396,20 @@ export default function RoomPage() {
         </div>
       )}
 
-      {/* ── Top bar (Generous height, luxury glassmorphic studio island) ── */}
-      <header className="shrink-0 h-16 sm:h-18 px-3.5 sm:px-6 md:px-8 flex items-center justify-between border-b border-white/[0.08] bg-[#0C0D16]/85 backdrop-blur-2xl z-20 select-none shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+      {/* ── Top bar (Generous height, luxury translucent studio island) ── */}
+      <header className="shrink-0 h-20 sm:h-22 px-4 sm:px-8 flex items-center justify-between border-b border-white/[0.1] bg-[#0A0B14]/35 backdrop-blur-3xl backdrop-saturate-150 z-20 select-none shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
         {/* Left: Brand + Room Code Pill */}
-        <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <button
             onClick={() => router.push('/')}
-            className="flex items-center gap-2 text-zinc-300 hover:text-white transition-all group shrink-0 active:scale-95"
+            className="flex items-center gap-2.5 text-zinc-300 hover:text-white transition-all group shrink-0 active:scale-95"
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.45)] p-[1px]">
-              <div className="w-full h-full bg-[#0C0D16] rounded-[11px] flex items-center justify-center">
-                <Radio className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_18px_rgba(139,92,246,0.45)] p-[1px]">
+              <div className="w-full h-full bg-[#0A0B14]/80 rounded-[15px] flex items-center justify-center backdrop-blur-sm">
+                <Radio className="w-4.5 h-4.5 text-white group-hover:scale-110 transition-transform" />
               </div>
             </div>
-            <span className="text-base font-black tracking-tight text-white hidden xs:inline">
+            <span className="text-base sm:text-lg font-black tracking-tight text-white hidden xs:inline">
               Jam<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C084FC] to-[#F472B6]">Flow</span>
             </span>
           </button>
@@ -417,10 +418,10 @@ export default function RoomPage() {
           <div className="flex items-center gap-2 text-xs min-w-0">
             <button
               onClick={() => copyToClipboard(room.id, 'code')}
-              className="flex items-center gap-1.5 font-mono font-bold text-zinc-200 hover:text-white transition-all bg-white/[0.05] hover:bg-white/[0.09] active:scale-95 px-3 py-1.5 rounded-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] shrink-0"
+              className="flex items-center gap-1.5 font-mono font-bold text-zinc-200 hover:text-white transition-all bg-white/[0.05] hover:bg-white/[0.1] active:scale-95 px-3.5 py-2 rounded-xl border border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] shrink-0 text-xs sm:text-sm"
               title="Click to copy room code"
             >
-              <span className="tracking-wide">{room.id}</span>
+              <span className="tracking-wider">{room.id}</span>
               {copiedField === 'code' ? (
                 <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               ) : (
@@ -911,15 +912,21 @@ export default function RoomPage() {
         {/* ━━━━ MOBILE layout (flex-col, only when isMobile is true) ━━━━ */}
         {isMobile === true && (
           <div className="flex flex-col w-full overflow-hidden">
-            {/* Mini player — fixed height, blurred album art bg */}
+            {/* Mini player — fixed height or sticky bar when expanded */}
             <div className="shrink-0">
               <YouTubePlayer
                 compact
+                minimized={isMobileExpanded}
+                onToggleMinimize={() => setIsMobileExpanded(prev => !prev)}
                 currentTrack={room.currentTrack}
                 playbackState={playbackState}
                 serverPosition={serverPosition}
                 lastSyncTimestamp={lastSyncTimestamp}
                 canControl={canControl}
+                hasQueue={room.queue.length > 0}
+                onSkipNext={() => {
+                  if (room.queue.length > 0) handleSkipTo(room.queue[0].id);
+                }}
                 onPlay={handlePlay}
                 onPause={handlePause}
                 onSeek={handleSeekAction}
@@ -929,12 +936,12 @@ export default function RoomPage() {
 
             {/* Queue / Chat — gets all remaining height */}
             <div className="flex-1 min-h-0 flex flex-col border-t border-white/[0.08] bg-[#0E0F18]/95 backdrop-blur-xl">
-              {/* Sleek Segmented Switcher */}
-              <div className="shrink-0 px-4 py-2.5 bg-[#0C0D16]/80 border-b border-white/[0.06]">
-                <div className="flex p-1 bg-white/[0.04] border border-white/[0.08] rounded-2xl shadow-inner">
+              {/* Sleek Segmented Switcher with Expand / Split Toggle */}
+              <div className="shrink-0 px-3.5 py-2.5 bg-[#0C0D16]/60 backdrop-blur-xl border-b border-white/[0.06] flex items-center gap-2">
+                <div className="flex-1 flex p-1 bg-white/[0.04] border border-white/[0.08] rounded-2xl shadow-inner">
                   <button
                     onClick={() => switchTab('queue')}
-                    className={`flex-1 py-2.5 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
+                    className={`flex-1 py-2 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
                       mobileTab === 'queue'
                         ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
                         : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
@@ -956,7 +963,7 @@ export default function RoomPage() {
                   </button>
                   <button
                     onClick={() => switchTab('chat')}
-                    className={`flex-1 py-2.5 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
+                    className={`flex-1 py-2 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
                       mobileTab === 'chat'
                         ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
                         : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
@@ -971,6 +978,25 @@ export default function RoomPage() {
                     )}
                   </button>
                 </div>
+
+                {/* Expand / Collapse Button to toggle full-screen Queue/Chat */}
+                <button
+                  onClick={() => setIsMobileExpanded(prev => !prev)}
+                  className="px-3 py-2 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-white flex items-center gap-1.5 text-xs font-semibold active:scale-95 transition-all shadow-sm shrink-0"
+                  title={isMobileExpanded ? "Split Screen View" : "Maximize Queue/Chat Space"}
+                >
+                  {isMobileExpanded ? (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5 text-[#C084FC]" />
+                      <span className="hidden xs:inline">Split</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5 text-[#C084FC]" />
+                      <span className="hidden xs:inline">Expand</span>
+                    </>
+                  )}
+                </button>
               </div>
 
               {/* Panel content */}

@@ -597,7 +597,7 @@ export default function HomePage() {
       />
 
       {/* ── Header (Generous height, luxury glassmorphic navbar) ─────────── */}
-      <header className="relative z-20 h-18 sm:h-20 flex items-center justify-between px-6 sm:px-10 lg:px-14 flex-shrink-0 border-b border-white/[0.05] bg-[#0A0B12]/60 backdrop-blur-xl">
+      <header className="relative z-20 h-20 sm:h-22 flex items-center justify-between px-6 sm:px-10 lg:px-14 flex-shrink-0 border-b border-white/[0.08] bg-[#0A0B14]/35 backdrop-blur-3xl backdrop-saturate-150 shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
         <div className="flex items-center gap-3.5">
           <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.45)] p-[1px]">
             <div className="w-full h-full bg-[#0A0B12] rounded-[15px] flex items-center justify-center backdrop-blur-sm">
