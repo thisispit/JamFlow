@@ -512,7 +512,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       return (
         <div
           ref={playerRootRef}
-          className="relative w-full h-15 px-3.5 bg-[#0C0D16]/65 backdrop-blur-2xl border-b border-white/[0.08] flex items-center justify-between gap-3 select-none shrink-0 z-10 shadow-lg"
+          className="relative w-full h-[72px] px-4 bg-[#0C0D16]/65 backdrop-blur-2xl border-b border-white/[0.08] flex items-center justify-between gap-4 select-none shrink-0 z-10 shadow-lg"
         >
           {/* Always maintain YouTube iframe in DOM so audio is 100% uninterrupted */}
           <div className="w-0 h-0 overflow-hidden opacity-0 pointer-events-none absolute">
@@ -522,59 +522,59 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           {/* Left: Artwork + Title (Tap anywhere to expand full player) */}
           <div
             onClick={onToggleMinimize}
-            className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group active:scale-[0.98] transition-transform"
+            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group active:scale-[0.98] transition-transform"
             title="Tap to expand full player"
           >
-            <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shrink-0 bg-zinc-900 shadow-md relative">
+            <div className="w-12 h-12 rounded-[14px] overflow-hidden border border-white/10 shrink-0 bg-zinc-900 shadow-md relative">
               {currentTrack?.thumbnail ? (
                 <img src={currentTrack.thumbnail} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center">
-                  <Radio className="w-4 h-4 text-white" />
+                  <Radio className="w-5 h-5 text-white" />
                 </div>
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-white text-xs font-bold truncate group-hover:text-[#C084FC] transition-colors">
+              <p className="text-white text-sm font-bold truncate group-hover:text-[#C084FC] transition-colors leading-snug">
                 {currentTrack?.title ?? 'Nothing in the flow'}
               </p>
-              <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 truncate mt-0.5">
+              <div className="flex items-center gap-1.5 text-xs text-zinc-400 truncate mt-0.5">
                 <span className="truncate">{currentTrack?.author ?? 'Add track to begin'}</span>
                 <span className="text-zinc-600">•</span>
-                <span className="text-[#C084FC] font-semibold shrink-0">Open Player ↑</span>
+                <span className="text-[#C084FC] font-semibold shrink-0">Expand ↑</span>
               </div>
             </div>
           </div>
 
           {/* Right: Controls & Expand Button */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleTogglePlay}
               disabled={!canControl || !currentTrack}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-md active:scale-95 ${
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md active:scale-95 ${
                 !canControl || !currentTrack
                   ? 'bg-white/10 text-white/20 cursor-not-allowed'
                   : 'bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] text-white shadow-[#8B5CF6]/30'
               }`}
             >
-              {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+              {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
             </button>
 
             <button
               onClick={onSkipNext}
               disabled={!canControl || !hasQueue}
-              className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] text-zinc-400 hover:text-white flex items-center justify-center active:scale-95 disabled:opacity-20"
+              className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.06] text-zinc-400 hover:text-white flex items-center justify-center active:scale-95 disabled:opacity-20"
               title="Skip"
             >
-              <FastForward className="w-3.5 h-3.5" />
+              <FastForward className="w-4 h-4" />
             </button>
 
             <button
               onClick={onToggleMinimize}
-              className="p-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] text-zinc-300 hover:text-white flex items-center gap-1 active:scale-95 text-[11px] font-medium ml-0.5"
+              className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] text-zinc-300 hover:text-white flex items-center justify-center active:scale-95 ml-1"
               title="Expand Player"
             >
-              <Maximize className="w-3.5 h-3.5 text-[#C084FC]" />
+              <Maximize className="w-4 h-4 text-[#C084FC]" />
             </button>
           </div>
 

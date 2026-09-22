@@ -396,119 +396,182 @@ export default function RoomPage() {
         </div>
       )}
 
-      {/* ── Top bar (Generous height, luxury translucent studio island) ── */}
-      <header className="shrink-0 h-20 sm:h-22 px-4 sm:px-8 flex items-center justify-between border-b border-white/[0.1] bg-[#0A0B14]/35 backdrop-blur-3xl backdrop-saturate-150 z-20 select-none shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
-        {/* Left: Brand + Room Code Pill */}
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+      {/* ── Top bar — 2-row on mobile, single-row on desktop ── */}
+      <header className="shrink-0 z-20 select-none bg-[#0A0B14]/40 backdrop-blur-3xl backdrop-saturate-150 border-b border-white/[0.1] shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+
+        {/* ── Row 1: Brand + Room Code (always visible) ── */}
+        <div className="flex items-center justify-between px-4 sm:px-8 h-16 sm:h-[72px]">
+          {/* Left: Logo + Name */}
           <button
             onClick={() => router.push('/')}
-            className="flex items-center gap-2.5 text-zinc-300 hover:text-white transition-all group shrink-0 active:scale-95"
+            className="flex items-center gap-3 text-zinc-300 hover:text-white transition-all group shrink-0 active:scale-95"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_18px_rgba(139,92,246,0.45)] p-[1px]">
-              <div className="w-full h-full bg-[#0A0B14]/80 rounded-[15px] flex items-center justify-center backdrop-blur-sm">
-                <Radio className="w-4.5 h-4.5 text-white group-hover:scale-110 transition-transform" />
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.5)] p-[1.5px]">
+              <div className="w-full h-full bg-[#0A0B14]/80 rounded-[13px] flex items-center justify-center backdrop-blur-sm">
+                <Radio className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
               </div>
             </div>
-            <span className="text-base sm:text-lg font-black tracking-tight text-white hidden xs:inline">
+            <span className="text-xl font-black tracking-tight text-white">
               Jam<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C084FC] to-[#F472B6]">Flow</span>
             </span>
           </button>
 
-          {/* Room Code · Room Name */}
-          <div className="flex items-center gap-2 text-xs min-w-0">
+          {/* Right (desktop only): All action buttons in one row */}
+          <div className="hidden sm:flex items-center gap-3 shrink-0">
+            {/* SYNCED badge */}
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs font-mono">
+              <span className="w-2 h-2 rounded-full bg-[#8B5CF6] shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
+              <span className="text-zinc-300 font-semibold tracking-wide">SYNCED</span>
+            </div>
+
+            {/* Room Code */}
             <button
               onClick={() => copyToClipboard(room.id, 'code')}
-              className="flex items-center gap-1.5 font-mono font-bold text-zinc-200 hover:text-white transition-all bg-white/[0.05] hover:bg-white/[0.1] active:scale-95 px-3.5 py-2 rounded-xl border border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] shrink-0 text-xs sm:text-sm"
+              className="flex items-center gap-2 font-mono font-bold text-zinc-200 hover:text-white transition-all bg-white/[0.05] hover:bg-white/[0.1] active:scale-95 px-4 py-2 rounded-xl border border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] text-sm"
               title="Click to copy room code"
             >
               <span className="tracking-wider">{room.id}</span>
               {copiedField === 'code' ? (
-                <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
               ) : (
-                <Copy className="w-3.5 h-3.5 text-zinc-400 hover:text-zinc-200 shrink-0" />
+                <Copy className="w-4 h-4 text-zinc-400 shrink-0" />
               )}
             </button>
 
             {room.name && (
-              <div className="hidden sm:flex items-center gap-1.5 text-zinc-400 text-xs font-medium truncate max-w-[130px] md:max-w-[200px]" title={room.name}>
+              <div className="flex items-center gap-1.5 text-zinc-400 text-sm font-medium truncate max-w-[160px]" title={room.name}>
                 <span className="text-zinc-600 font-bold select-none">·</span>
                 <span className="truncate">{room.name}</span>
               </div>
             )}
+
+            {/* LIVE LISTENERS */}
+            <button
+              onClick={() => setIsListeningNowOpen(prev => !prev)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] hover:border-white/20 active:scale-95 transition-all shadow-sm"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D946EF] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D946EF]" />
+              </span>
+              <span className="font-bold text-white text-sm">LIVE {room.users.length}</span>
+            </button>
+
+            {/* Host badge */}
+            {host && (
+              <div className="hidden md:flex items-center gap-1.5 text-sm text-zinc-300 bg-white/[0.05] px-3 py-2 rounded-xl border border-white/[0.08]">
+                <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="font-medium truncate max-w-[120px]">
+                  {currentUser?.isHost ? `${currentUser.username} (Host)` : host.username}
+                </span>
+              </div>
+            )}
+
+            {/* Settings */}
+            {currentUser?.isHost && (
+              <button
+                onClick={() => setIsSettingsOpen(prev => !prev)}
+                className="p-2.5 rounded-xl text-zinc-400 hover:text-white bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] active:scale-95 transition-all"
+                title="Room Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            )}
+
+            {/* Share */}
+            <button
+              onClick={handleShareToggle}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all active:scale-95 ${
+                isShareOpen
+                  ? 'bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] text-white shadow-lg shadow-[#8B5CF6]/30'
+                  : 'text-zinc-200 hover:text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.09] shadow-sm'
+              }`}
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Share</span>
+            </button>
+
+            {/* Leave */}
+            <button
+              onClick={handleLeaveRoom}
+              className="px-4 py-2 rounded-xl text-sm font-semibold text-rose-400/90 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 active:scale-95 transition-all flex items-center gap-2 shadow-sm"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Leave</span>
+            </button>
+          </div>
+
+          {/* Right (mobile only): compact icon row */}
+          <div className="flex sm:hidden items-center gap-2 shrink-0">
+            {/* Live listeners pill */}
+            <button
+              onClick={() => setIsListeningNowOpen(prev => !prev)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] active:scale-95 transition-all"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D946EF] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D946EF]" />
+              </span>
+              <span className="font-bold text-white text-sm">{room.users.length}</span>
+            </button>
+
+            {/* Share */}
+            <button
+              onClick={handleShareToggle}
+              className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-95 ${
+                isShareOpen
+                  ? 'bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] text-white shadow-lg shadow-[#8B5CF6]/30'
+                  : 'text-zinc-300 bg-white/[0.06] border border-white/[0.09]'
+              }`}
+              title="Share Room"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+
+            {/* Settings (host only) */}
+            {currentUser?.isHost && (
+              <button
+                onClick={() => setIsSettingsOpen(prev => !prev)}
+                className="w-11 h-11 rounded-xl text-zinc-400 hover:text-white bg-white/[0.05] border border-white/[0.08] active:scale-95 transition-all flex items-center justify-center"
+                title="Room Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            )}
+
+            {/* Leave */}
+            <button
+              onClick={handleLeaveRoom}
+              className="w-11 h-11 rounded-xl text-rose-400 bg-rose-500/10 border border-rose-500/20 active:scale-95 transition-all flex items-center justify-center"
+              title="Leave room"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
-        {/* Right: SYNCED · LIVE LISTENERS · HOST · SHARE · LEAVE */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* SYNCED badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono">
-            <span className="w-2 h-2 rounded-full bg-[#8B5CF6] shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
-            <span className="text-zinc-300 font-semibold tracking-wide">SYNCED</span>
-          </div>
-
-          {/* LIVE LISTENERS button */}
+        {/* ── Row 2 (mobile only): Room Code + Room Name ── */}
+        <div className="sm:hidden flex items-center gap-3 px-4 pb-3">
           <button
-            onClick={() => setIsListeningNowOpen(prev => !prev)}
-            className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] hover:border-white/20 active:scale-95 transition-all cursor-pointer shadow-sm"
-            title="Click to view listening participants"
+            onClick={() => copyToClipboard(room.id, 'code')}
+            className="flex items-center gap-2 font-mono font-bold text-zinc-200 hover:text-white transition-all bg-white/[0.05] hover:bg-white/[0.1] active:scale-95 px-4 py-2.5 rounded-xl border border-white/[0.09] text-sm flex-1 justify-center"
+            title="Tap to copy room code"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D946EF] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D946EF]" />
-            </span>
-            <Users className="w-3.5 h-3.5 text-zinc-400 sm:hidden" />
-            <span className="font-bold text-white text-xs whitespace-nowrap">
-              <span className="hidden sm:inline">LIVE </span>
-              {room.users.length}
-              <span className="hidden sm:inline"> LISTENING</span>
-            </span>
+            <span className="tracking-widest">{room.id}</span>
+            {copiedField === 'code' ? (
+              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : (
+              <Copy className="w-4 h-4 text-zinc-500 shrink-0" />
+            )}
           </button>
 
-          {/* 👑 Host badge */}
-          {host && (
-            <div className="hidden md:flex items-center gap-1.5 text-xs text-zinc-300 bg-white/[0.05] px-3 py-1.5 rounded-xl border border-white/[0.08]">
-              <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="font-medium truncate max-w-[110px]">
-                {currentUser?.isHost ? `${currentUser.username} (Host)` : host.username}
-              </span>
+          {room.name && (
+            <div className="flex items-center gap-1.5 text-zinc-400 text-sm font-medium truncate min-w-0 flex-1 justify-center">
+              <span className="truncate text-center">{room.name}</span>
             </div>
           )}
-
-          {/* Host Settings */}
-          {currentUser?.isHost && (
-            <button
-              onClick={() => setIsSettingsOpen(prev => !prev)}
-              className="p-2 sm:p-2.5 rounded-xl text-zinc-400 hover:text-white bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] active:scale-95 transition-all"
-              title="Room Settings"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Share button */}
-          <button
-            onClick={handleShareToggle}
-            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${
-              isShareOpen
-                ? 'bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] text-white shadow-lg shadow-[#8B5CF6]/30'
-                : 'text-zinc-200 hover:text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.09] shadow-sm'
-            }`}
-            title="Share Room"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Share</span>
-          </button>
-
-          {/* Leave room */}
-          <button
-            onClick={handleLeaveRoom}
-            className="p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium text-rose-400/90 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm"
-            title="Leave room"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden md:inline font-semibold">Leave</span>
-          </button>
         </div>
+
       </header>
 
       {/* ── LISTENING NOW Modal / Popover ── */}
@@ -521,16 +584,16 @@ export default function RoomPage() {
             className="relative w-full max-w-sm rounded-3xl bg-[#121320]/95 border border-white/[0.1] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-3.5">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">Listeners ({room.users.length})</h3>
+            <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] mb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-white">Listeners ({room.users.length})</h3>
               </div>
               <button
                 onClick={() => setIsListeningNowOpen(false)}
-                className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                className="w-9 h-9 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -539,20 +602,20 @@ export default function RoomPage() {
               {room.users.map(u => {
                 const isMe = u.id === currentUser?.id;
                 return (
-                  <div key={u.id} className="flex items-center justify-between py-2 px-3 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center text-xs font-bold text-white uppercase shrink-0 shadow-sm">
+                  <div key={u.id} className="flex items-center justify-between py-2.5 px-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center text-sm font-bold text-white uppercase shrink-0 shadow-sm">
                         {u.username.slice(0, 1)}
                       </div>
-                      <span className={`text-xs truncate ${isMe ? 'font-bold text-white' : 'text-zinc-300'}`}>
+                      <span className={`text-sm truncate ${isMe ? 'font-bold text-white' : 'text-zinc-300'}`}>
                         {isMe ? `${u.username} (You)` : u.username}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
                       {u.isHost ? (
-                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-semibold text-amber-400 flex items-center gap-1">
-                          <Crown className="w-2.5 h-2.5" /> Host
+                        <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-[11px] font-mono font-semibold text-amber-400 flex items-center gap-1.5">
+                          <Crown className="w-3 h-3" /> Host
                         </span>
                       ) : (
                         <>
@@ -562,7 +625,7 @@ export default function RoomPage() {
                               <button
                                 type="button"
                                 onClick={() => handleToggleDJ(u.id)}
-                                className={`px-2.5 py-1 rounded-xl text-[10px] font-semibold border transition-all active:scale-95 ${
+                                className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold border transition-all active:scale-95 ${
                                   u.isDJ
                                     ? 'bg-[#8B5CF6]/20 border-[#8B5CF6]/40 text-[#C084FC] hover:bg-rose-500/20 hover:border-rose-500/30 hover:text-rose-400'
                                     : 'bg-white/[0.05] border-white/[0.08] text-zinc-400 hover:text-white hover:border-[#8B5CF6]'
@@ -578,15 +641,15 @@ export default function RoomPage() {
                                     handleTransferHost(u.id);
                                   }
                                 }}
-                                className="p-1 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-amber-400/10 border border-transparent hover:border-amber-400/20 transition-colors"
+                                className="p-1.5 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-amber-400/10 border border-transparent hover:border-amber-400/20 transition-colors"
                                 title="Transfer Host role"
                               >
-                                <Crown className="w-3.5 h-3.5" />
+                                <Crown className="w-4 h-4" />
                               </button>
                             </>
                           )}
                           {!currentUser?.isHost && u.isDJ && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[10px] font-mono font-semibold text-[#8B5CF6]">
+                            <span className="px-3 py-1 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[11px] font-mono font-semibold text-[#8B5CF6]">
                               DJ
                             </span>
                           )}
@@ -937,21 +1000,21 @@ export default function RoomPage() {
             {/* Queue / Chat — gets all remaining height */}
             <div className="flex-1 min-h-0 flex flex-col border-t border-white/[0.08] bg-[#0E0F18]/95 backdrop-blur-xl">
               {/* Sleek Segmented Switcher with Expand / Split Toggle */}
-              <div className="shrink-0 px-3.5 py-2.5 bg-[#0C0D16]/60 backdrop-blur-xl border-b border-white/[0.06] flex items-center gap-2">
+              <div className="shrink-0 px-4 py-3 bg-[#0C0D16]/60 backdrop-blur-xl border-b border-white/[0.06] flex items-center gap-3">
                 <div className="flex-1 flex p-1 bg-white/[0.04] border border-white/[0.08] rounded-2xl shadow-inner">
                   <button
                     onClick={() => switchTab('queue')}
-                    className={`flex-1 py-2 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
+                    className={`flex-1 py-2.5 text-sm font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
                       mobileTab === 'queue'
                         ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
                         : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
                     }`}
                   >
-                    <ListMusic className="w-3.5 h-3.5" />
+                    <ListMusic className="w-4 h-4" />
                     <span>Queue</span>
                     {room.queue.length > 0 && (
                       <span
-                        className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold transition-colors ${
+                        className={`px-1.5 py-0.5 rounded-full text-xs font-mono font-semibold transition-colors ${
                           mobileTab === 'queue'
                             ? 'bg-white/25 text-white'
                             : 'bg-white/[0.08] text-zinc-400'
@@ -963,16 +1026,16 @@ export default function RoomPage() {
                   </button>
                   <button
                     onClick={() => switchTab('chat')}
-                    className={`flex-1 py-2 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
+                    className={`flex-1 py-2.5 text-sm font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
                       mobileTab === 'chat'
                         ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
                         : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
                     }`}
                   >
-                    <MessageSquare className="w-3.5 h-3.5" />
+                    <MessageSquare className="w-4 h-4" />
                     <span>Chat</span>
                     {unreadChatCount > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full bg-gradient-to-r from-[#D946EF] to-rose-500 text-white text-[10px] font-bold font-mono shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse">
+                      <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#D946EF] to-rose-500 text-white text-xs font-bold font-mono shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse">
                         {unreadChatCount}
                       </span>
                     )}
@@ -982,17 +1045,17 @@ export default function RoomPage() {
                 {/* Expand / Collapse Button to toggle full-screen Queue/Chat */}
                 <button
                   onClick={() => setIsMobileExpanded(prev => !prev)}
-                  className="px-3 py-2 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-white flex items-center gap-1.5 text-xs font-semibold active:scale-95 transition-all shadow-sm shrink-0"
+                  className="px-4 py-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-white flex items-center gap-2 text-sm font-semibold active:scale-95 transition-all shadow-sm shrink-0"
                   title={isMobileExpanded ? "Split Screen View" : "Maximize Queue/Chat Space"}
                 >
                   {isMobileExpanded ? (
                     <>
-                      <Minimize2 className="w-3.5 h-3.5 text-[#C084FC]" />
+                      <Minimize2 className="w-4 h-4 text-[#C084FC]" />
                       <span className="hidden xs:inline">Split</span>
                     </>
                   ) : (
                     <>
-                      <Maximize2 className="w-3.5 h-3.5 text-[#C084FC]" />
+                      <Maximize2 className="w-4 h-4 text-[#C084FC]" />
                       <span className="hidden xs:inline">Expand</span>
                     </>
                   )}
