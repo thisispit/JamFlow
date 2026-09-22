@@ -539,7 +539,7 @@ export default function HomePage() {
       setIsCreating(false);
       if (res.success && res.roomId) {
         sessionStorage.setItem('jamflow_username', createUsername.trim());
-        router.push(`/room/${res.roomId}`);
+        router.push(`/${res.roomId}`);
       } else {
         setCreateError(res.error || 'Failed to create room');
       }
@@ -554,7 +554,7 @@ export default function HomePage() {
     setIsJoining(true);
     setJoinError('');
     sessionStorage.setItem('jamflow_username', joinUsername.trim());
-    router.push(`/room/${cleanCode}`);
+    router.push(`/${cleanCode}`);
   };
 
   return (
