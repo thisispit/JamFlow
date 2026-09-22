@@ -14,7 +14,10 @@ import {
   Sparkles,
   Clipboard,
   MoreVertical,
-  X,
+  Radio,
+  ChevronDown,
+  ChevronUp,
+  Signal,
 } from 'lucide-react';
 import { Track, VoteSkipState, User } from '@/types';
 
@@ -34,6 +37,90 @@ interface QueueListProps {
   onVoteSkip: () => void;
 }
 
+// ── Curated 24/7 Radio Stations ──────────────────────────────────────────────
+const RADIO_STATIONS = [
+  {
+    id: 'lofi-girl',
+    name: 'Lofi Girl',
+    description: 'Chill beats to study & relax',
+    genre: 'Lo-Fi',
+    emoji: '☕',
+    accent: '#A78BFA',
+    url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+    thumb: 'https://i.ytimg.com/vi/jfKfPfyJRdk/mqdefault.jpg',
+  },
+  {
+    id: 'lofi-girl-evening',
+    name: 'Lofi Girl — Sunset',
+    description: 'Evening jazzy lo-fi beats',
+    genre: 'Lo-Fi',
+    emoji: '🌅',
+    accent: '#F472B6',
+    url: 'https://www.youtube.com/watch?v=rUxyKA_-grg',
+    thumb: 'https://i.ytimg.com/vi/rUxyKA_-grg/mqdefault.jpg',
+  },
+  {
+    id: 'chillhop',
+    name: 'Chillhop Music',
+    description: 'Real jazz & hip-hop beats',
+    genre: 'Chillhop',
+    emoji: '🎺',
+    accent: '#34D399',
+    url: 'https://www.youtube.com/watch?v=5yx6BWlEVcY',
+    thumb: 'https://i.ytimg.com/vi/5yx6BWlEVcY/mqdefault.jpg',
+  },
+  {
+    id: 'ncs',
+    name: 'NCS Music',
+    description: 'No copyright sounds, 24/7',
+    genre: 'NCS / EDM',
+    emoji: '⚡',
+    accent: '#60A5FA',
+    url: 'https://www.youtube.com/watch?v=7NOSDKb0HlU',
+    thumb: 'https://i.ytimg.com/vi/7NOSDKb0HlU/mqdefault.jpg',
+  },
+  {
+    id: 'synthwave',
+    name: 'Synthwave Radio',
+    description: 'Retro neon electronic vibes',
+    genre: 'Synthwave',
+    emoji: '🌆',
+    accent: '#818CF8',
+    url: 'https://www.youtube.com/watch?v=4xDzrJKXOOY',
+    thumb: 'https://i.ytimg.com/vi/4xDzrJKXOOY/mqdefault.jpg',
+  },
+  {
+    id: 'jazz-bgm',
+    name: 'Jazz & Blues Radio',
+    description: 'Smooth jazz for the evening',
+    genre: 'Jazz',
+    emoji: '🎷',
+    accent: '#FBBF24',
+    url: 'https://www.youtube.com/watch?v=Dx5qFachd3A',
+    thumb: 'https://i.ytimg.com/vi/Dx5qFachd3A/mqdefault.jpg',
+  },
+  {
+    id: 'classical',
+    name: 'Classical Focus',
+    description: 'Beethoven, Mozart & more',
+    genre: 'Classical',
+    emoji: '🎻',
+    accent: '#F87171',
+    url: 'https://www.youtube.com/watch?v=DWcJFNfaw9c',
+    thumb: 'https://i.ytimg.com/vi/DWcJFNfaw9c/mqdefault.jpg',
+  },
+  {
+    id: 'deep-focus',
+    name: 'Deep Focus',
+    description: 'Ambient for deep work',
+    genre: 'Ambient',
+    emoji: '🌌',
+    accent: '#2DD4BF',
+    url: 'https://www.youtube.com/watch?v=WPni755-Krg',
+    thumb: 'https://i.ytimg.com/vi/WPni755-Krg/mqdefault.jpg',
+  },
+];
+
 const PRESET_TRACKS = [
   {
     title: 'Lo-Fi Chill',
@@ -48,7 +135,7 @@ const PRESET_TRACKS = [
   {
     title: 'Chillhop',
     icon: '🎧',
-    url: 'https://www.youtube.com/watch?v=turbc3bT19k',
+    url: 'https://www.youtube.com/watch?v=5yx6BWlEVcY',
   },
   {
     title: 'Deep Ambient',
@@ -83,6 +170,8 @@ export const QueueList: React.FC<QueueListProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const [activeMenuTrackId, setActiveMenuTrackId] = useState<string | null>(null);
+  const [showRadio, setShowRadio] = useState(false);
+  const [tuningStationId, setTuningStationId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const hasVoted = currentUser ? voteSkip.votedUserIds.includes(currentUser.id) : false;
@@ -90,13 +179,10 @@ export const QueueList: React.FC<QueueListProps> = ({
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!urlInput.trim()) return;
-
     setIsSubmitting(true);
     setInputError(null);
-
     const success = await onAddTrack(urlInput.trim());
     setIsSubmitting(false);
-
     if (success) {
       setUrlInput('');
     } else {
@@ -109,6 +195,13 @@ export const QueueList: React.FC<QueueListProps> = ({
     setInputError(null);
     await onAddTrack(url);
     setIsSubmitting(false);
+  };
+
+  const handleTuneIn = async (station: typeof RADIO_STATIONS[0]) => {
+    if (!canAdd) return;
+    setTuningStationId(station.id);
+    await onAddTrack(station.url);
+    setTuningStationId(null);
   };
 
   const handlePasteClipboard = async () => {
@@ -127,6 +220,7 @@ export const QueueList: React.FC<QueueListProps> = ({
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-transparent">
+
       {/* ── Add track form & Presets bar ── */}
       <div className="p-4 sm:p-5 border-b border-white/[0.08] bg-[#0A0B14]/40 shrink-0">
         <form onSubmit={handleAddSubmit} className="flex gap-3 items-center">
@@ -140,7 +234,6 @@ export const QueueList: React.FC<QueueListProps> = ({
               onChange={(e) => setUrlInput(e.target.value)}
               className="w-full bg-white/[0.04] border border-white/[0.09] rounded-2xl pl-4 pr-16 py-3.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6]/50 transition-all disabled:opacity-40 shadow-inner"
             />
-            {/* 1-tap Clipboard Paste button for mobile/desktop */}
             {!urlInput && canAdd && (
               <button
                 type="button"
@@ -168,7 +261,7 @@ export const QueueList: React.FC<QueueListProps> = ({
 
         {inputError && <p className="text-xs text-rose-400 mt-2 ml-1">{inputError}</p>}
 
-        {/* Quick Add Presets Carousel */}
+        {/* Quick Add Presets */}
         <div className="mt-3.5 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <span className="text-xs text-zinc-500 font-mono uppercase tracking-wider shrink-0 flex items-center gap-1.5 mr-1">
             <Sparkles className="w-4 h-4 text-[#C084FC]" /> Quick:
@@ -186,6 +279,99 @@ export const QueueList: React.FC<QueueListProps> = ({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ── 📻 Radio Stations Panel ── */}
+      <div className="shrink-0 border-b border-white/[0.08]">
+        {/* Toggle Header */}
+        <button
+          onClick={() => setShowRadio(prev => !prev)}
+          className="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 hover:bg-white/[0.03] transition-colors group"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center shadow-[0_0_12px_rgba(139,92,246,0.4)]">
+              <Radio className="w-4 h-4 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-bold text-white leading-tight">Live Radio</p>
+              <p className="text-[11px] text-zinc-500 leading-tight">8 curated 24/7 stations</p>
+            </div>
+            {/* LIVE pill */}
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/25 text-rose-400 text-[10px] font-bold font-mono uppercase tracking-wide ml-1">
+              <Signal className="w-2.5 h-2.5" />
+              LIVE
+            </span>
+          </div>
+          <div className="text-zinc-500 group-hover:text-zinc-300 transition-colors">
+            {showRadio ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </div>
+        </button>
+
+        {/* Station Grid */}
+        {showRadio && (
+          <div className="px-4 sm:px-5 pb-4 grid grid-cols-2 gap-2.5">
+            {RADIO_STATIONS.map((station) => {
+              const isTuning = tuningStationId === station.id;
+              return (
+                <div
+                  key={station.id}
+                  className="relative rounded-2xl overflow-hidden border border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.05] transition-all group"
+                >
+                  {/* Thumbnail */}
+                  <div className="relative h-20 w-full overflow-hidden">
+                    <img
+                      src={station.thumb}
+                      alt={station.name}
+                      className="w-full h-full object-cover scale-110 group-hover:scale-105 transition-transform duration-500 blur-[1px] opacity-70"
+                    />
+                    {/* Gradient overlay */}
+                    <div
+                      className="absolute inset-0"
+                      style={{ background: `linear-gradient(to bottom, ${station.accent}22 0%, rgba(10,11,18,0.75) 100%)` }}
+                    />
+                    {/* Genre badge */}
+                    <span
+                      className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-md"
+                      style={{ background: `${station.accent}55`, border: `1px solid ${station.accent}66` }}
+                    >
+                      {station.genre}
+                    </span>
+                    {/* Live dot */}
+                    <span className="absolute top-2 right-2 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse shadow-[0_0_6px_rgba(248,113,113,0.8)]" />
+                    </span>
+                    {/* Emoji */}
+                    <span className="absolute bottom-2 left-2.5 text-xl drop-shadow-md">{station.emoji}</span>
+                  </div>
+
+                  {/* Station info + Tune In */}
+                  <div className="p-2.5">
+                    <p className="text-white text-xs font-bold leading-tight truncate">{station.name}</p>
+                    <p className="text-zinc-500 text-[10px] leading-tight mt-0.5 truncate">{station.description}</p>
+
+                    <button
+                      onClick={() => handleTuneIn(station)}
+                      disabled={!canAdd || isTuning}
+                      className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-40"
+                      style={{
+                        background: `linear-gradient(135deg, ${station.accent}33, ${station.accent}18)`,
+                        border: `1px solid ${station.accent}44`,
+                        color: station.accent,
+                      }}
+                    >
+                      {isTuning ? (
+                        <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                      )}
+                      {isTuning ? 'Adding…' : 'Tune In'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Vote to skip bar ── */}
@@ -233,7 +419,7 @@ export const QueueList: React.FC<QueueListProps> = ({
             <p className="text-zinc-400 text-sm mt-1.5 max-w-[240px] leading-relaxed">
               {userCount > 1
                 ? `${userCount} people are waiting for the next track.`
-                : 'Add a track and start listening together.'}
+                : 'Add a track or tune into a Live Radio station above.'}
             </p>
             <button
               type="button"
@@ -286,129 +472,64 @@ export const QueueList: React.FC<QueueListProps> = ({
                   </div>
                 </div>
 
-                {/* Desktop hover action buttons */}
+                {/* Desktop hover actions */}
                 <div className="hidden sm:flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   {canControl && (
                     <>
-                      <button
-                        onClick={() => onSkipTo(track.id)}
-                        className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-                        title="Play Now"
-                      >
+                      <button onClick={() => onSkipTo(track.id)} className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors" title="Play Now">
                         <Play className="w-5 h-5 fill-current" />
                       </button>
-                      <button
-                        onClick={() => onReorder(idx, idx - 1)}
-                        disabled={idx === 0}
-                        className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-20"
-                        title="Move Up"
-                      >
+                      <button onClick={() => onReorder(idx, idx - 1)} disabled={idx === 0} className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-20" title="Move Up">
                         <ArrowUp className="w-5 h-5" />
                       </button>
-                      <button
-                        onClick={() => onReorder(idx, idx + 1)}
-                        disabled={idx === queue.length - 1}
-                        className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-20"
-                        title="Move Down"
-                      >
+                      <button onClick={() => onReorder(idx, idx + 1)} disabled={idx === queue.length - 1} className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-20" title="Move Down">
                         <ArrowDown className="w-5 h-5" />
                       </button>
                     </>
                   )}
-
                   {canRemove && (
-                    <button
-                      onClick={() => onRemoveTrack(track.id)}
-                      className="p-2 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      title="Remove from queue"
-                    >
+                    <button onClick={() => onRemoveTrack(track.id)} className="p-2 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors" title="Remove">
                       <Trash2 className="w-5 h-5" />
                     </button>
                   )}
                 </div>
 
-                {/* Mobile action buttons (Tap targets optimized for phones) */}
+                {/* Mobile actions */}
                 <div className="flex sm:hidden items-center gap-2 shrink-0">
                   {canControl && (
-                    <button
-                      onClick={() => onSkipTo(track.id)}
-                      className="w-10 h-10 rounded-xl bg-[#8B5CF6]/15 hover:bg-[#8B5CF6]/30 text-[#C084FC] flex items-center justify-center transition-all active:scale-95 border border-[#8B5CF6]/30"
-                      title="Play Now"
-                    >
+                    <button onClick={() => onSkipTo(track.id)} className="w-10 h-10 rounded-xl bg-[#8B5CF6]/15 hover:bg-[#8B5CF6]/30 text-[#C084FC] flex items-center justify-center transition-all active:scale-95 border border-[#8B5CF6]/30" title="Play Now">
                       <Play className="w-5 h-5 fill-current ml-0.5" />
                     </button>
                   )}
-
                   {(canControl || canRemove) && (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveMenuTrackId(isMenuOpen ? null : track.id);
-                      }}
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 border ${
-                        isMenuOpen
-                          ? 'bg-white/20 text-white border-white/30'
-                          : 'bg-white/[0.04] text-zinc-400 hover:text-white border-white/[0.08]'
-                      }`}
-                      title="Options"
+                      onClick={(e) => { e.stopPropagation(); setActiveMenuTrackId(isMenuOpen ? null : track.id); }}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 border ${isMenuOpen ? 'bg-white/20 text-white border-white/30' : 'bg-white/[0.04] text-zinc-400 hover:text-white border-white/[0.08]'}`}
                     >
                       <MoreVertical className="w-5 h-5" />
                     </button>
                   )}
                 </div>
 
-                {/* Mobile Floating Menu Popover */}
+                {/* Mobile Popover Menu */}
                 {isMenuOpen && (
-                  <div
-                    className="sm:hidden absolute right-3 top-full mt-2 z-30 flex flex-col gap-1 p-2 rounded-2xl bg-[#121320]/95 backdrop-blur-2xl border border-white/[0.15] shadow-2xl animate-in fade-in zoom-in-95 duration-100 min-w-[140px]"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <div className="sm:hidden absolute right-3 top-full mt-2 z-30 flex flex-col gap-1 p-2 rounded-2xl bg-[#121320]/95 backdrop-blur-2xl border border-white/[0.15] shadow-2xl animate-in fade-in zoom-in-95 duration-100 min-w-[140px]" onClick={(e) => e.stopPropagation()}>
                     {canControl && (
                       <>
-                        <button
-                          onClick={() => {
-                            onReorder(idx, idx - 1);
-                            setActiveMenuTrackId(null);
-                          }}
-                          disabled={idx === 0}
-                          className="px-3 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 text-sm font-medium flex items-center gap-2 disabled:opacity-20 active:scale-95"
-                        >
-                          <ArrowUp className="w-4 h-4" />
-                          <span>Move Up</span>
+                        <button onClick={() => { onReorder(idx, idx - 1); setActiveMenuTrackId(null); }} disabled={idx === 0} className="px-3 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 text-sm font-medium flex items-center gap-2 disabled:opacity-20 active:scale-95">
+                          <ArrowUp className="w-4 h-4" /><span>Move Up</span>
                         </button>
-                        <button
-                          onClick={() => {
-                            onReorder(idx, idx + 1);
-                            setActiveMenuTrackId(null);
-                          }}
-                          disabled={idx === queue.length - 1}
-                          className="px-3 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 text-sm font-medium flex items-center gap-2 disabled:opacity-20 active:scale-95"
-                        >
-                          <ArrowDown className="w-4 h-4" />
-                          <span>Move Down</span>
+                        <button onClick={() => { onReorder(idx, idx + 1); setActiveMenuTrackId(null); }} disabled={idx === queue.length - 1} className="px-3 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 text-sm font-medium flex items-center gap-2 disabled:opacity-20 active:scale-95">
+                          <ArrowDown className="w-4 h-4" /><span>Move Down</span>
                         </button>
                       </>
                     )}
-
                     {canRemove && (
-                      <button
-                        onClick={() => {
-                          onRemoveTrack(track.id);
-                          setActiveMenuTrackId(null);
-                        }}
-                        className="px-3 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 text-sm font-medium flex items-center gap-2 border border-rose-500/20 active:scale-95 mt-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span>Delete Track</span>
+                      <button onClick={() => { onRemoveTrack(track.id); setActiveMenuTrackId(null); }} className="px-3 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 text-sm font-medium flex items-center gap-2 border border-rose-500/20 active:scale-95 mt-1">
+                        <Trash2 className="w-4 h-4" /><span>Delete Track</span>
                       </button>
                     )}
-
-                    <button
-                      onClick={() => setActiveMenuTrackId(null)}
-                      className="mt-1 px-3 py-2 rounded-xl text-zinc-400 hover:text-white text-sm font-medium flex justify-center w-full"
-                    >
-                      Close
-                    </button>
+                    <button onClick={() => setActiveMenuTrackId(null)} className="mt-1 px-3 py-2 rounded-xl text-zinc-400 hover:text-white text-sm font-medium flex justify-center w-full">Close</button>
                   </div>
                 )}
               </div>
@@ -417,13 +538,10 @@ export const QueueList: React.FC<QueueListProps> = ({
         )}
       </div>
 
-      {/* ── Footer Clear Queue button ── */}
+      {/* ── Footer ── */}
       {queue.length > 0 && canControl && (
         <div className="px-4 py-3 border-t border-white/[0.06] bg-[#0A0B14]/30 flex justify-end shrink-0">
-          <button
-            onClick={onClearQueue}
-            className="text-xs text-zinc-500 hover:text-rose-400 transition-colors flex items-center gap-1.5 active:scale-95"
-          >
+          <button onClick={onClearQueue} className="text-xs text-zinc-500 hover:text-rose-400 transition-colors flex items-center gap-1.5 active:scale-95">
             <Trash2 className="w-4 h-4" />
             Clear all tracks
           </button>
