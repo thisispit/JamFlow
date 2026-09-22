@@ -1,4 +1,5 @@
 import { createServer } from 'http';
+import { parse } from 'url';
 import next from 'next';
 import { Server as SocketIOServer } from 'socket.io';
 import { RoomManager } from './src/server/roomManager';
@@ -11,7 +12,7 @@ const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
 const port = parseInt(process.env.PORT || '3000', 10);
 
-const app = next({ dev, hostname, port });
+const app = next({ dev });
 const handle = app.getRequestHandler();
 
 const roomManager = new RoomManager();
@@ -19,8 +20,19 @@ const roomManager = new RoomManager();
 app.prepare().then(() => {
   const httpServer = createServer((req, res) => {
     try {
-      const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-      handle(req, res, parsedUrl as any);
+      // Intercept any recursive redirect loop artifacts from previous browser cache
+      if (req.url && req.url.includes('localhost:3000')) {
+        res.writeHead(302, {
+          Location: '/',
+          'Clear-Site-Data': '"cache"',
+          'Cache-Control': 'no-store',
+        });
+        res.end();
+        return;
+      }
+
+      const parsedUrl = parse(req.url || '/', true);
+      handle(req, res, parsedUrl);
     } catch (err) {
       console.error('Error handling HTTP request:', err);
       res.statusCode = 500;
@@ -447,7 +459,7 @@ app.prepare().then(() => {
     }
   }
 
-  httpServer.listen(port, () => {
+  httpServer.listen(port, '0.0.0.0', () => {
     console.log(`> JamFlow ready on http://${hostname}:${port}`);
   });
 });

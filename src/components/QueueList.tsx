@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ListMusic,
   Plus,
@@ -22,6 +22,7 @@ interface QueueListProps {
   voteSkip: VoteSkipState;
   canControl: boolean;
   canAdd: boolean;
+  userCount?: number;
   onAddTrack: (url: string) => Promise<boolean>;
   onRemoveTrack: (trackId: string) => void;
   onReorder: (startIndex: number, endIndex: number) => void;
@@ -32,15 +33,15 @@ interface QueueListProps {
 
 const PRESET_TRACKS = [
   {
-    title: 'Lofi Hip Hop - Chill Beats',
+    title: '+ Lo-fi',
     url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
   },
   {
-    title: 'Synthwave Radio - Chill Synth',
+    title: '+ Synthwave',
     url: 'https://www.youtube.com/watch?v=4xDzrJKXOOY',
   },
   {
-    title: 'Coffee Shop Acoustic Vibes',
+    title: '+ Chillhop',
     url: 'https://www.youtube.com/watch?v=turbc3bT19k',
   },
 ];
@@ -52,6 +53,7 @@ export const QueueList: React.FC<QueueListProps> = ({
   voteSkip,
   canControl,
   canAdd,
+  userCount = 1,
   onAddTrack,
   onRemoveTrack,
   onReorder,
@@ -62,6 +64,7 @@ export const QueueList: React.FC<QueueListProps> = ({
   const [urlInput, setUrlInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const hasVoted = currentUser ? voteSkip.votedUserIds.includes(currentUser.id) : false;
 
@@ -90,85 +93,42 @@ export const QueueList: React.FC<QueueListProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-zinc-900/60 backdrop-blur-xl border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
-      {/* Header */}
-      <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-fuchsia-500/10 text-fuchsia-400">
-            <ListMusic className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-bold text-zinc-100 text-sm flex items-center gap-2">
-              Shared Queue
-              <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-normal">
-                {queue.length} {queue.length === 1 ? 'track' : 'tracks'}
-              </span>
-            </h3>
-          </div>
-        </div>
-
-        {/* Vote to Skip button */}
-        {currentTrack && (
-          <button
-            onClick={onVoteSkip}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm ${
-              hasVoted
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 active:scale-95'
-            }`}
-            title="Vote to skip current track"
-          >
-            <FastForward className="w-3.5 h-3.5" />
-            <span>
-              {hasVoted ? 'Voted' : 'Vote Skip'} ({voteSkip.votedUserIds.length}/{voteSkip.requiredVotes})
-            </span>
-          </button>
-        )}
-      </div>
-
+    <div className="flex flex-col h-full overflow-hidden bg-[#111114]">
       {/* Add track form */}
-      <div className="p-4 border-b border-zinc-800/80 bg-zinc-900/30">
+      <div className="p-3 border-b border-[#242429]">
         <form onSubmit={handleAddSubmit} className="flex gap-2">
           <input
+            ref={inputRef}
             type="text"
-            placeholder={canAdd ? "Paste YouTube link or ID..." : "Queue locked by host"}
+            placeholder={canAdd ? "Paste YouTube link…" : "Queue locked by host"}
             disabled={!canAdd || isSubmitting}
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
-            className="flex-1 bg-zinc-950/80 border border-zinc-800 rounded-xl px-3.5 py-2 text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-fuchsia-500 transition-colors disabled:opacity-50"
+            className="flex-1 bg-[#09090B] border border-[#242429] rounded-xl px-3 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-[#8B5CF6] transition-colors disabled:opacity-40"
           />
           <button
             type="submit"
             disabled={!canAdd || isSubmitting || !urlInput.trim()}
-            className="px-4 py-2 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-medium text-sm flex items-center gap-1.5 transition-all disabled:opacity-40 shadow-lg shadow-fuchsia-600/20"
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] text-white font-semibold text-xs flex items-center gap-1 transition-all disabled:opacity-30 hover:opacity-95 shadow-md shadow-[#8B5CF6]/20"
           >
-            {isSubmitting ? (
-              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <Plus className="w-4 h-4" />
-                <span>Add</span>
-              </>
-            )}
+            {isSubmitting
+              ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : <Plus className="w-4 h-4" />
+            }
           </button>
         </form>
 
-        {inputError && (
-          <p className="text-xs text-rose-400 mt-2 ml-1">{inputError}</p>
-        )}
+        {inputError && <p className="text-[11px] text-rose-400 mt-1.5 ml-1">{inputError}</p>}
 
-        {/* Quick Suggestion Presets */}
-        <div className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
-          <span className="text-zinc-500 shrink-0 text-[11px] flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-fuchsia-400" /> Quick Add:
-          </span>
+        {/* Quick Add presets */}
+        <div className="mt-2.5 flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
           {PRESET_TRACKS.map((preset, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => handleQuickAdd(preset.url)}
               disabled={!canAdd || isSubmitting}
-              className="shrink-0 px-2.5 py-1 rounded-lg bg-zinc-800/60 hover:bg-zinc-700/80 border border-zinc-700/40 text-zinc-300 text-[11px] transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-full bg-[#09090B] border border-[#242429] text-zinc-400 text-[11px] hover:border-[#8B5CF6]/50 hover:text-white transition-colors disabled:opacity-30"
             >
               {preset.title}
             </button>
@@ -176,26 +136,61 @@ export const QueueList: React.FC<QueueListProps> = ({
         </div>
       </div>
 
+      {/* Vote to skip bar */}
+      {currentTrack && (
+        <div className="px-3 py-2 border-b border-[#242429] flex items-center justify-between bg-[#09090B]/40">
+          <span className="text-[11px] text-zinc-500">
+            Now playing · <span className="text-zinc-300 font-medium">{currentTrack.title.slice(0, 26)}{currentTrack.title.length > 26 ? '…' : ''}</span>
+          </span>
+          <button
+            onClick={onVoteSkip}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1 transition-colors ${
+              hasVoted
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : 'bg-[#111114] border border-[#242429] text-zinc-400 hover:text-zinc-200 hover:border-zinc-600'
+            }`}
+          >
+            <FastForward className="w-3 h-3" />
+            {hasVoted ? 'Voted' : 'Skip'} ({voteSkip.votedUserIds.length}/{voteSkip.requiredVotes})
+          </button>
+        </div>
+      )}
+
       {/* Queue items list */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {queue.length === 0 ? (
-          <div className="h-48 flex flex-col items-center justify-center text-center p-4">
-            <div className="w-12 h-12 rounded-full bg-zinc-800/80 flex items-center justify-center mb-2 text-zinc-500">
-              <Music2 className="w-6 h-6" />
+          <div className="h-64 flex flex-col items-center justify-center text-center p-6 my-auto select-none">
+            <div className="w-12 h-12 rounded-2xl bg-[#09090B] border border-[#242429] flex items-center justify-center mb-3 shadow-inner">
+              <div className="w-6 h-6 rounded-full border-2 border-dashed border-[#8B5CF6]/60 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-[#8B5CF6]" />
+              </div>
             </div>
-            <p className="text-zinc-400 text-sm font-medium">The queue is empty</p>
-            <p className="text-zinc-500 text-xs mt-0.5">
-              Add videos using the input above to keep the music going!
+            <p className="text-zinc-200 text-sm font-bold tracking-tight">
+              {userCount > 1 ? 'Nothing playing' : 'Nothing in the flow'}
             </p>
+            <p className="text-zinc-400 text-xs mt-1 max-w-[220px] leading-relaxed">
+              {userCount > 1
+                ? `${userCount} people are waiting for the next track.`
+                : 'Add a track and start listening together.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.focus()}
+              disabled={!canAdd}
+              className="mt-4 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] hover:opacity-95 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#8B5CF6]/25 active:scale-95 disabled:opacity-40"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{userCount > 1 ? '+ ADD TRACK' : '+ ADD FIRST TRACK'}</span>
+            </button>
           </div>
         ) : (
           queue.map((track, idx) => (
             <div
               key={track.id}
-              className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-950/40 border border-zinc-800/60 hover:border-zinc-700 transition-all group"
+              className="flex items-center gap-3 p-2.5 rounded-xl bg-[#09090B]/60 border border-[#242429] hover:border-zinc-700 transition-all group"
             >
-              <span className="text-xs font-mono text-zinc-500 w-5 text-center shrink-0">
-                {idx + 1}
+              <span className="text-xs font-mono font-bold text-zinc-500 w-6 text-center shrink-0">
+                {String(idx + 1).padStart(2, '0')}
               </span>
 
               <img
@@ -205,7 +200,7 @@ export const QueueList: React.FC<QueueListProps> = ({
               />
 
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-zinc-200 truncate group-hover:text-fuchsia-300 transition-colors">
+                <p className="text-xs font-semibold text-zinc-200 truncate group-hover:text-[#C084FC] transition-colors">
                   {track.title}
                 </p>
                 <div className="flex items-center gap-2 text-[11px] text-zinc-400 truncate">
@@ -262,13 +257,13 @@ export const QueueList: React.FC<QueueListProps> = ({
 
       {/* Footer Clear Queue button */}
       {queue.length > 0 && canControl && (
-        <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/20 flex justify-end">
+        <div className="px-3 py-2 border-t border-white/5 flex justify-end">
           <button
             onClick={onClearQueue}
-            className="text-xs text-zinc-500 hover:text-rose-400 transition-colors flex items-center gap-1 px-2 py-1 rounded"
+            className="text-[11px] text-zinc-600 hover:text-rose-400 transition-colors flex items-center gap-1"
           >
             <Trash2 className="w-3 h-3" />
-            <span>Clear Queue</span>
+            Clear all
           </button>
         </div>
       )}

@@ -127,7 +127,7 @@ async function runTests() {
   console.log('\n--- 6. Testing Host Migration on Disconnect ---');
   const leaveRes = manager.leaveRoom('socket-alice');
   assert(leaveRes !== null, 'Alice left room');
-  assert(leaveRes?.departedUser.username === 'Alice', 'Departed user is Alice');
+  assert(leaveRes?.departedUser?.username === 'Alice', 'Departed user is Alice');
   assert(leaveRes?.newHost?.id === 'socket-bob', 'Bob was promoted to Host automatically');
   assert(room.hostId === 'socket-bob', 'Room hostId is now Bob');
 
