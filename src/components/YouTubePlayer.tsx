@@ -1126,10 +1126,10 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         </div>
       </div>
 
-      {/* Controls Row */}
-      <div className="relative z-10 flex items-center justify-between w-full max-w-md mt-3 px-2 shrink-0">
-        {/* Volume */}
-        <div className="flex items-center gap-2">
+      {/* Controls Row — 3 equal columns so play/pause is always dead-center */}
+      <div className="relative z-10 grid grid-cols-3 items-center w-full max-w-md mt-3 px-2 shrink-0">
+        {/* Left: Volume */}
+        <div className="flex items-center gap-2 justify-self-start">
           <button
             onClick={handleToggleMute}
             className="text-zinc-400 hover:text-white transition-colors p-1"
@@ -1147,8 +1147,8 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           />
         </div>
 
-        {/* Main Controls: Resync, Play/Pause, Skip Next */}
-        <div className="flex items-center gap-3">
+        {/* Center: Main Controls (always centered) */}
+        <div className="flex items-center gap-3 justify-self-center">
           <button
             onClick={handleResync}
             title="Restart track / Resync"
@@ -1186,14 +1186,16 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           </button>
         </div>
 
-        {/* Fullscreen Button */}
-        <button
-          onClick={toggleFullscreen}
-          className="p-2 text-zinc-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
-          title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-        >
-          {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-        </button>
+        {/* Right: Fullscreen (mirrors left width so center stays true) */}
+        <div className="flex items-center justify-self-end">
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 text-zinc-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          >
+            {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Collaborative LISTENING NOW Layer */}
