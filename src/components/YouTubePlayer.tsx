@@ -146,6 +146,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [needsGesture, setNeedsGesture] = useState(false);
+  const [playerError, setPlayerError] = useState<string | null>(null);
 
   const setInternalAction = useCallback((durationMs = 3000) => {
     isInternalActionRef.current = true;
@@ -303,10 +304,14 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         events: {
           onReady: (e: any) => {
             isPlayerReadyRef.current = true;
+            setPlayerError(null);
             e.target.setVolume?.(volume);
             doSeek(getExpectedServerPosition(), false);
             if (playbackStateRef.current === 'playing') e.target.playVideo?.();
             else e.target.pauseVideo?.();
+          },
+          onAutoplayBlocked: () => {
+            setNeedsGesture(true);
           },
           onStateChange: (e: any) => {
             const S = window.YT.PlayerState;
@@ -333,7 +338,15 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               }
             }
           },
-          onError: (e: any) => console.warn('YT error:', e.data),
+          onError: (e: any) => {
+            const message = e.data === 150 || e.data === 101
+              ? 'This YouTube stream does not allow embedded playback. Choose another station.'
+              : e.data === 2
+                ? 'YouTube rejected this stream ID. Choose another station or check the URL.'
+                : `YouTube could not play this stream (error ${e.data}).`;
+            setPlayerError(message);
+            console.warn('YT error:', e.data);
+          },
         },
       });
       return true;
@@ -347,6 +360,8 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   // Track change
   useEffect(() => {
     if (!playerRef.current || !isPlayerReadyRef.current) return;
+    setPlayerError(null);
+    setNeedsGesture(false);
     if (!currentTrack) { setInternalAction(); playerRef.current.stopVideo?.(); setCurrentTime(0); setDuration(0); return; }
     const loadedId = playerRef.current.getVideoData?.()?.video_id;
     if (loadedId !== currentTrack.videoId) {
@@ -495,6 +510,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
   const handleGesture = () => {
     setNeedsGesture(false);
+    setPlayerError(null);
     if (!playerRef.current || !isPlayerReadyRef.current) return;
     playerRef.current.unMute?.();
     setIsMuted(false);

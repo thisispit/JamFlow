@@ -6,6 +6,7 @@ import {
   Radio, ArrowRight, X, Music2, Users, Sparkles,
 } from 'lucide-react';
 import { getSocket } from '@/lib/socket';
+import { getRandomDemonSlayerName } from '@/lib/animeNames';
 
 /* ─────────────────────────────────────────────────────────────────
    Vinyl SVG — authentic grooves + label + iridescent neon sheen
@@ -472,11 +473,12 @@ function Modal({
                 </label>
                 <input
                   type="text"
-                  placeholder="JAM-XXXX"
+                  placeholder="5-character code"
                   required
                   autoFocus
+                  maxLength={5}
                   value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  onChange={(e) => setJoinCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 5).toUpperCase())}
                   className="w-full uppercase font-mono tracking-widest bg-zinc-950/90 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-[#8B5CF6] transition-colors"
                 />
               </div>
@@ -497,7 +499,7 @@ function Modal({
               <button
                 type="submit"
                 disabled={isJoining}
-                className="w-full py-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 hover:text-white font-semibold text-sm border border-zinc-700 hover:border-[#8B5CF6]/50 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 mt-1"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#D946EF] hover:opacity-95 text-white font-semibold text-sm border border-[#C084FC]/30 shadow-lg shadow-[#8B5CF6]/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 mt-1"
               >
                 {isJoining
                   ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -529,6 +531,11 @@ export default function HomePage() {
 
   const [showModal, setShowModal] = useState<'create' | 'join' | null>(null);
 
+  React.useEffect(() => {
+    setCreateUsername(getRandomDemonSlayerName());
+    setJoinUsername(getRandomDemonSlayerName());
+  }, []);
+
   const handleCreateRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (!createUsername.trim()) { setCreateError('Please choose a username'); return; }
@@ -548,8 +555,9 @@ export default function HomePage() {
 
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanCode = joinCode.trim().toUpperCase();
+    const cleanCode = joinCode.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     if (!cleanCode) { setJoinError('Please enter a room code'); return; }
+    if (!/^[A-Z0-9]{5}$/.test(cleanCode)) { setJoinError('Room codes are exactly 5 letters or numbers'); return; }
     if (!joinUsername.trim()) { setJoinError('Please choose a username'); return; }
     setIsJoining(true);
     setJoinError('');

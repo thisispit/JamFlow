@@ -2,22 +2,15 @@
 
 import React, { useState, useRef } from 'react';
 import {
-  ListMusic,
   Plus,
   Trash2,
   Play,
   ArrowUp,
   ArrowDown,
   FastForward,
-  Check,
-  Music2,
-  Sparkles,
   Clipboard,
   MoreVertical,
   Radio,
-  ChevronDown,
-  ChevronUp,
-  Signal,
 } from 'lucide-react';
 import { Track, VoteSkipState, User } from '@/types';
 
@@ -121,29 +114,6 @@ const RADIO_STATIONS = [
   },
 ];
 
-const PRESET_TRACKS = [
-  {
-    title: 'Lo-Fi Chill',
-    icon: '☕',
-    url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
-  },
-  {
-    title: 'Synthwave',
-    icon: '⚡',
-    url: 'https://www.youtube.com/watch?v=4xDzrJKXOOY',
-  },
-  {
-    title: 'Chillhop',
-    icon: '🎧',
-    url: 'https://www.youtube.com/watch?v=5yx6BWlEVcY',
-  },
-  {
-    title: 'Deep Ambient',
-    icon: '🌌',
-    url: 'https://www.youtube.com/watch?v=WPni755-Krg',
-  },
-];
-
 const formatDuration = (seconds?: number) => {
   if (!seconds || isNaN(seconds)) return null;
   const mins = Math.floor(seconds / 60);
@@ -170,8 +140,6 @@ export const QueueList: React.FC<QueueListProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const [activeMenuTrackId, setActiveMenuTrackId] = useState<string | null>(null);
-  const [showRadio, setShowRadio] = useState(false);
-  const [tuningStationId, setTuningStationId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const hasVoted = currentUser ? voteSkip.votedUserIds.includes(currentUser.id) : false;
@@ -195,13 +163,6 @@ export const QueueList: React.FC<QueueListProps> = ({
     setInputError(null);
     await onAddTrack(url);
     setIsSubmitting(false);
-  };
-
-  const handleTuneIn = async (station: typeof RADIO_STATIONS[0]) => {
-    if (!canAdd) return;
-    setTuningStationId(station.id);
-    await onAddTrack(station.url);
-    setTuningStationId(null);
   };
 
   const handlePasteClipboard = async () => {
@@ -261,117 +222,24 @@ export const QueueList: React.FC<QueueListProps> = ({
 
         {inputError && <p className="text-xs text-rose-400 mt-2 ml-1">{inputError}</p>}
 
-        {/* Quick Add Presets */}
+        {/* Radio Stations Carousel */}
         <div className="mt-3.5 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <span className="text-xs text-zinc-500 font-mono uppercase tracking-wider shrink-0 flex items-center gap-1.5 mr-1">
-            <Sparkles className="w-4 h-4 text-[#C084FC]" /> Quick:
+            <Radio className="w-4 h-4 text-[#C084FC]" /> Radio:
           </span>
-          {PRESET_TRACKS.map((preset, idx) => (
+          {RADIO_STATIONS.map((station) => (
             <button
-              key={idx}
+              key={station.id}
               type="button"
-              onClick={() => handleQuickAdd(preset.url)}
+              onClick={() => handleQuickAdd(station.url)}
               disabled={!canAdd || isSubmitting}
               className="shrink-0 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-zinc-300 hover:border-[#8B5CF6]/50 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-all disabled:opacity-30 active:scale-95 shadow-sm"
             >
-              <span className="text-sm">{preset.icon}</span>
-              <span>{preset.title}</span>
+              <span className="text-sm">{station.emoji}</span>
+              <span>{station.name}</span>
             </button>
           ))}
         </div>
-      </div>
-
-      {/* ── 📻 Radio Stations Panel ── */}
-      <div className="shrink-0 border-b border-white/[0.08]">
-        {/* Toggle Header */}
-        <button
-          onClick={() => setShowRadio(prev => !prev)}
-          className="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 hover:bg-white/[0.03] transition-colors group"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center shadow-[0_0_12px_rgba(139,92,246,0.4)]">
-              <Radio className="w-4 h-4 text-white" />
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-bold text-white leading-tight">Live Radio</p>
-              <p className="text-[11px] text-zinc-500 leading-tight">8 curated 24/7 stations</p>
-            </div>
-            {/* LIVE pill */}
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/25 text-rose-400 text-[10px] font-bold font-mono uppercase tracking-wide ml-1">
-              <Signal className="w-2.5 h-2.5" />
-              LIVE
-            </span>
-          </div>
-          <div className="text-zinc-500 group-hover:text-zinc-300 transition-colors">
-            {showRadio ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </div>
-        </button>
-
-        {/* Station Grid */}
-        {showRadio && (
-          <div className="px-4 sm:px-5 pb-4 grid grid-cols-2 gap-2.5">
-            {RADIO_STATIONS.map((station) => {
-              const isTuning = tuningStationId === station.id;
-              return (
-                <div
-                  key={station.id}
-                  className="relative rounded-2xl overflow-hidden border border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.05] transition-all group"
-                >
-                  {/* Thumbnail */}
-                  <div className="relative h-20 w-full overflow-hidden">
-                    <img
-                      src={station.thumb}
-                      alt={station.name}
-                      className="w-full h-full object-cover scale-110 group-hover:scale-105 transition-transform duration-500 blur-[1px] opacity-70"
-                    />
-                    {/* Gradient overlay */}
-                    <div
-                      className="absolute inset-0"
-                      style={{ background: `linear-gradient(to bottom, ${station.accent}22 0%, rgba(10,11,18,0.75) 100%)` }}
-                    />
-                    {/* Genre badge */}
-                    <span
-                      className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-md"
-                      style={{ background: `${station.accent}55`, border: `1px solid ${station.accent}66` }}
-                    >
-                      {station.genre}
-                    </span>
-                    {/* Live dot */}
-                    <span className="absolute top-2 right-2 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse shadow-[0_0_6px_rgba(248,113,113,0.8)]" />
-                    </span>
-                    {/* Emoji */}
-                    <span className="absolute bottom-2 left-2.5 text-xl drop-shadow-md">{station.emoji}</span>
-                  </div>
-
-                  {/* Station info + Tune In */}
-                  <div className="p-2.5">
-                    <p className="text-white text-xs font-bold leading-tight truncate">{station.name}</p>
-                    <p className="text-zinc-500 text-[10px] leading-tight mt-0.5 truncate">{station.description}</p>
-
-                    <button
-                      onClick={() => handleTuneIn(station)}
-                      disabled={!canAdd || isTuning}
-                      className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-40"
-                      style={{
-                        background: `linear-gradient(135deg, ${station.accent}33, ${station.accent}18)`,
-                        border: `1px solid ${station.accent}44`,
-                        color: station.accent,
-                      }}
-                    >
-                      {isTuning ? (
-                        <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                      )}
-                      {isTuning ? 'Adding…' : 'Tune In'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* ── Vote to skip bar ── */}
@@ -407,14 +275,14 @@ export const QueueList: React.FC<QueueListProps> = ({
         onClick={() => setActiveMenuTrackId(null)}
       >
         {queue.length === 0 ? (
-          <div className="h-64 flex flex-col items-center justify-center text-center p-6 my-auto select-none">
-            <div className="w-20 h-20 rounded-3xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-4 shadow-inner">
+          <div className="min-h-full flex flex-col items-center justify-center text-center p-6 select-none">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-4 shadow-inner">
               <div className="w-8 h-8 rounded-full border-2 border-dashed border-[#8B5CF6]/60 flex items-center justify-center">
                 <div className="w-3 h-3 rounded-full bg-[#8B5CF6]" />
               </div>
             </div>
             <p className="text-zinc-200 text-base font-bold tracking-tight">
-              {userCount > 1 ? 'Nothing playing' : 'Nothing in the flow'}
+              Queue is empty
             </p>
             <p className="text-zinc-400 text-sm mt-1.5 max-w-[240px] leading-relaxed">
               {userCount > 1
@@ -428,7 +296,7 @@ export const QueueList: React.FC<QueueListProps> = ({
               className="mt-6 px-6 py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] hover:opacity-95 text-white font-semibold text-sm flex items-center gap-2 transition-all shadow-md shadow-[#8B5CF6]/25 active:scale-95 disabled:opacity-40"
             >
               <Plus className="w-5 h-5" />
-              <span>{userCount > 1 ? '+ ADD TRACK' : '+ ADD FIRST TRACK'}</span>
+              <span>+ ADD TRACK</span>
             </button>
           </div>
         ) : (

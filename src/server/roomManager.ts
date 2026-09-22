@@ -11,20 +11,18 @@ export class RoomManager {
   }
 
   public generateRoomId(): string {
-    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const numbers = '23456789';
-    let code = 'JAM-';
-    for (let i = 0; i < 2; i++) {
-      code += letters.charAt(Math.floor(Math.random() * letters.length));
-    }
-    for (let i = 0; i < 2; i++) {
-      code += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 5; i++) {
+      code += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
     }
     return code;
   }
 
   public getRoom(roomId: string): Room | undefined {
-    return this.rooms.get(roomId.toUpperCase());
+    const rawId = roomId.trim().toUpperCase();
+    const normalizedId = rawId.replace(/[^A-Z0-9]/g, '');
+    return this.rooms.get(rawId) ?? this.rooms.get(normalizedId);
   }
 
   public getSocketInfo(socketId: string) {
@@ -83,8 +81,9 @@ export class RoomManager {
   }
 
   public joinRoom(roomId: string, username: string, socketId: string): { room: Room; user: User } | { error: string } {
-    const normalizedId = roomId.trim().toUpperCase();
-    const room = this.rooms.get(normalizedId);
+    const rawId = roomId.trim().toUpperCase();
+    const normalizedId = rawId.replace(/[^A-Z0-9]/g, '');
+    const room = this.rooms.get(rawId) ?? this.rooms.get(normalizedId);
 
     if (!room) {
       return { error: 'Room not found. Please check the code and try again.' };
@@ -112,7 +111,7 @@ export class RoomManager {
       room.users.push(user);
     }
 
-    this.socketMap.set(socketId, { roomId: normalizedId, userId: user.id });
+    this.socketMap.set(socketId, { roomId: room.id, userId: user.id });
     this.updateVoteSkipThreshold(room);
 
     // Add system message

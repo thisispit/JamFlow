@@ -15,6 +15,7 @@ import { YouTubePlayer } from '@/components/YouTubePlayer';
 import { QueueList } from '@/components/QueueList';
 import { ChatAndReactions } from '@/components/ChatAndReactions';
 import { FloatingReactions } from '@/components/FloatingReactions';
+import { getRandomDemonSlayerName } from '@/lib/animeNames';
 
 export default function RoomPage() {
   const params = useParams();
@@ -75,7 +76,8 @@ export default function RoomPage() {
 
   useEffect(() => {
     const saved = sessionStorage.getItem('jamflow_username');
-    if (saved) { setUsername(saved); setHasPromptedUser(true); }
+    setUsername(saved || getRandomDemonSlayerName());
+    if (saved) setHasPromptedUser(true);
     else { setHasPromptedUser(false); setIsLoading(false); }
   }, []);
 
@@ -321,11 +323,14 @@ export default function RoomPage() {
             className="space-y-3"
           >
             <input
-              type="text" placeholder="Your nickname" autoFocus required
+              type="text" placeholder="Your anime name" autoFocus required
               value={username} onChange={e => setUsername(e.target.value)}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-white/30"
             />
-            <button type="submit" className="w-full py-3 rounded-xl bg-white text-zinc-900 font-semibold text-sm hover:bg-zinc-100 transition-colors">
+            <button
+              type="submit"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#D946EF] text-white font-semibold text-sm border border-[#C084FC]/30 shadow-lg shadow-[#8B5CF6]/25 hover:opacity-95 transition-all active:scale-[0.98]"
+            >
               Enter Room
             </button>
           </form>
@@ -397,15 +402,15 @@ export default function RoomPage() {
       )}
 
       {/* ── Top bar (Generous height, luxury translucent studio island) ── */}
-      <header className="shrink-0 h-20 sm:h-22 px-4 sm:px-8 flex items-center justify-between border-b border-white/[0.1] bg-[#0A0B14]/35 backdrop-blur-3xl backdrop-saturate-150 z-20 select-none shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
+      <header className="shrink-0 h-20 sm:h-22 px-4 sm:px-8 flex items-center justify-between border-b border-[#8B5CF6]/15 bg-[#0a0b0f]/60 backdrop-blur-3xl backdrop-saturate-150 z-20 select-none shadow-[0_8px_32px_rgba(0,0,0,0.32)]">
         {/* Left: Brand + Room Code Pill */}
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <button
             onClick={() => router.push('/')}
             className="flex items-center gap-2.5 text-zinc-300 hover:text-white transition-all group shrink-0 active:scale-95"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_18px_rgba(139,92,246,0.45)] p-[1px]">
-              <div className="w-full h-full bg-[#0A0B14]/80 rounded-[15px] flex items-center justify-center backdrop-blur-sm">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_18px_rgba(139,92,246,0.4)] p-[1px]">
+              <div className="w-full h-full bg-[#101116]/90 rounded-[15px] flex items-center justify-center backdrop-blur-sm">
                 <Radio className="w-4.5 h-4.5 text-white group-hover:scale-110 transition-transform" />
               </div>
             </div>
@@ -421,7 +426,7 @@ export default function RoomPage() {
               className="flex items-center gap-1.5 font-mono font-bold text-zinc-200 hover:text-white transition-all bg-white/[0.05] hover:bg-white/[0.1] active:scale-95 px-3.5 py-2 rounded-xl border border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] shrink-0 text-xs sm:text-sm"
               title="Click to copy room code"
             >
-              <span className="tracking-wider">{room.id}</span>
+              <span className="tracking-[0.18em]">{room.id}</span>
               {copiedField === 'code' ? (
                 <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               ) : (
@@ -441,9 +446,9 @@ export default function RoomPage() {
         {/* Right: SYNCED · LIVE LISTENERS · HOST · SHARE · LEAVE */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* SYNCED badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono">
-            <span className="w-2 h-2 rounded-full bg-[#8B5CF6] shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
-            <span className="text-zinc-300 font-semibold tracking-wide">SYNCED</span>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#8B5CF6]/[0.08] border border-[#8B5CF6]/20 text-[10px] font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#D946EF] shadow-[0_0_8px_rgba(217,70,239,0.8)]" />
+            <span className="text-[#C084FC] font-semibold tracking-[0.16em]">IN SYNC</span>
           </div>
 
           {/* LIVE LISTENERS button */}

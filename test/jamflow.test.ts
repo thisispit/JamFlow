@@ -50,7 +50,7 @@ async function runTests() {
 
   // Test createRoom
   const { room, user: host } = manager.createRoom('Alice', 'socket-alice', 'Chill Lounge');
-  assert(room.id.startsWith('JAM-'), `Room ID generated format correct (${room.id})`);
+  assert(/^[A-Z0-9]{5}$/.test(room.id), `Room ID generated format correct (${room.id})`);
   assert(room.name === 'Chill Lounge', 'Room name matches custom name');
   assert(room.hostId === 'socket-alice', 'Alice is designated Host');
   assert(host.isHost === true && host.isDJ === true, 'Host has host and DJ roles');
