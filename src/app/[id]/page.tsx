@@ -358,29 +358,13 @@ export default function RoomPage() {
 
   return (
     <main className="relative h-[100dvh] bg-[#0A0B12] flex flex-col overflow-hidden text-zinc-100 selection:bg-[#8B5CF6]/30">
-      {/* ── Full-viewport album art backdrop — bleeds behind translucent header ── */}
+      {/* ── Ambient Studio Atmosphere ── */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-        {/* Blurred album art — fills entire screen including behind header */}
-        {room.currentTrack?.thumbnail && (
-          <>
-            <img
-              key={room.currentTrack.thumbnail}
-              src={room.currentTrack.thumbnail}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover scale-150 blur-3xl opacity-25 transition-all duration-1000"
-            />
-            {/* Dark vignette so text stays readable */}
-            <div className="absolute inset-0 bg-[#0A0B12]/65" />
-          </>
-        )}
-
-        {/* Violet aurora (always present, layered on top of / instead of album art) */}
+        {/* Top violet-fuchsia aurora bloom */}
         <div
-          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] sm:w-[950px] h-[400px] rounded-full blur-[100px]"
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] sm:w-[950px] h-[400px] rounded-full opacity-30 blur-[100px]"
           style={{
-            opacity: room.currentTrack ? 0.15 : 0.30,
             background: 'radial-gradient(ellipse at center, rgba(139, 92, 246, 0.45) 0%, rgba(217, 70, 239, 0.2) 45%, transparent 70%)',
-            transition: 'opacity 1s ease',
           }}
         />
         {/* Subtle bottom-right indigo warm fill */}
@@ -1027,7 +1011,35 @@ export default function RoomPage() {
         {isMobile !== true && (
           <div className="flex w-full overflow-hidden flex-1 min-h-0">
             {/* Left — Now Playing (~70%) */}
-            <div className="flex-1 min-w-0 relative h-full">
+            <div className="flex-1 min-w-0 relative h-full overflow-hidden bg-[#0A0B12]">
+
+              {/* ── Album art background — starts right below the header, fills full column ── */}
+              {room.currentTrack?.thumbnail ? (
+                <>
+                  <img
+                    key={room.currentTrack.thumbnail}
+                    src={room.currentTrack.thumbnail}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover object-top blur-3xl scale-110 opacity-30 transition-all duration-1000 pointer-events-none z-0"
+                  />
+                  {/* Gradient: subtle at top, darkens toward the controls at the bottom */}
+                  <div
+                    className="absolute inset-0 z-0 pointer-events-none"
+                    style={{
+                      background: 'linear-gradient(to bottom, rgba(10,11,18,0.1) 0%, rgba(10,11,18,0.55) 60%, rgba(10,11,18,0.85) 100%)',
+                    }}
+                  />
+                </>
+              ) : (
+                /* No track — violet aurora fallback */
+                <div
+                  className="absolute inset-0 z-0 pointer-events-none"
+                  style={{
+                    background: 'radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.3) 0%, rgba(217,70,239,0.12) 45%, transparent 70%)',
+                  }}
+                />
+              )}
+
               <YouTubePlayer
                 currentTrack={room.currentTrack}
                 playbackState={playbackState}
