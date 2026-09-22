@@ -8,18 +8,23 @@ import {
   ServerToClientEvents,
 } from './src/types';
 
+const isStandalone = process.env.STANDALONE_SOCKET === 'true';
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
+const hostname = '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
-
-const app = next({ dev });
-const handle = app.getRequestHandler();
 
 const roomManager = new RoomManager();
 
-app.prepare().then(() => {
+const runServer = (handle?: any) => {
   const httpServer = createServer((req, res) => {
     try {
+      // Health check endpoint for Render, Railway, uptime monitors
+      if (req.url === '/health' || (isStandalone && req.url === '/')) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok', service: 'JamFlow WebSocket Server', timestamp: new Date().toISOString() }));
+        return;
+      }
+
       // Intercept any recursive redirect loop artifacts from previous browser cache
       if (req.url && req.url.includes('localhost:3000')) {
         res.writeHead(302, {
@@ -31,8 +36,13 @@ app.prepare().then(() => {
         return;
       }
 
-      const parsedUrl = parse(req.url || '/', true);
-      handle(req, res, parsedUrl);
+      if (handle) {
+        const parsedUrl = parse(req.url || '/', true);
+        handle(req, res, parsedUrl);
+      } else {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not Found');
+      }
     } catch (err) {
       console.error('Error handling HTTP request:', err);
       res.statusCode = 500;
@@ -460,6 +470,17 @@ app.prepare().then(() => {
   }
 
   httpServer.listen(port, '0.0.0.0', () => {
-    console.log(`> JamFlow ready on http://${hostname}:${port}`);
+    console.log(`> JamFlow ready on http://${hostname}:${port} ${isStandalone ? '(Standalone WebSocket Server)' : '(Next.js + Socket.io)'}`);
   });
-});
+};
+
+if (isStandalone) {
+  console.log('> Starting JamFlow in Standalone WebSocket Mode (No Next.js SSR overhead)');
+  runServer();
+} else {
+  const app = next({ dev });
+  const handle = app.getRequestHandler();
+  app.prepare().then(() => {
+    runServer(handle);
+  });
+}

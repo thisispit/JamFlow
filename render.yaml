@@ -4,7 +4,10 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: npm run server
+    startCommand: npm run server:standalone
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: STANDALONE_SOCKET
+        value: "true"
