@@ -966,31 +966,28 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       className={`select-none transition-all duration-300 ${
         isFullscreen
           ? 'fixed inset-0 z-[99999] w-screen h-screen bg-[#0A0B12] p-6 md:p-8 flex flex-col justify-between overflow-hidden'
-          : 'relative w-full h-full flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden py-6 px-6 lg:px-10 bg-[#0A0B12]'
+          : 'relative w-full h-full flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden py-6 px-6 lg:px-10'
       }`}
-      style={{
-        background: isFullscreen
-          ? '#0A0B12'
-          : 'radial-gradient(circle at 50% 35%, rgba(139, 92, 246, 0.12), transparent 48%), #0A0B12',
-      }}
     >
-      {/* Dynamic ambient background glow */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        {currentTrack?.thumbnail ? (
-          <img
-            src={currentTrack.thumbnail}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover scale-150 blur-3xl opacity-20"
-          />
-        ) : (
-          <div
-            className="absolute inset-0 w-full h-full scale-125 blur-3xl opacity-25 pointer-events-none"
-            style={{
-              background: 'radial-gradient(ellipse at 50% 35%, rgba(139, 92, 246, 0.35) 0%, rgba(217, 70, 239, 0.18) 45%, transparent 70%)',
-            }}
-          />
-        )}
-      </div>
+      {/* Fullscreen needs its own blurred art since page backdrop doesn't apply */}
+      {isFullscreen && (
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          {currentTrack?.thumbnail ? (
+            <img
+              src={currentTrack.thumbnail}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover scale-150 blur-3xl opacity-20"
+            />
+          ) : (
+            <div
+              className="absolute inset-0 w-full h-full scale-125 blur-3xl opacity-25 pointer-events-none"
+              style={{
+                background: 'radial-gradient(ellipse at 50% 35%, rgba(139, 92, 246, 0.35) 0%, rgba(217, 70, 239, 0.18) 45%, transparent 70%)',
+              }}
+            />
+          )}
+        </div>
+      )}
 
       {/* Autoplay gesture overlay */}
       {needsGesture && (

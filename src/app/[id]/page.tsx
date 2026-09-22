@@ -358,13 +358,29 @@ export default function RoomPage() {
 
   return (
     <main className="relative h-[100dvh] bg-[#0A0B12] flex flex-col overflow-hidden text-zinc-100 selection:bg-[#8B5CF6]/30">
-      {/* ── Ambient Studio Atmosphere (rich depth, eliminates harsh pitch black) ── */}
+      {/* ── Full-viewport album art backdrop — bleeds behind translucent header ── */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-        {/* Top vibrant violet-fuchsia aurora bloom */}
+        {/* Blurred album art — fills entire screen including behind header */}
+        {room.currentTrack?.thumbnail && (
+          <>
+            <img
+              key={room.currentTrack.thumbnail}
+              src={room.currentTrack.thumbnail}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover scale-150 blur-3xl opacity-25 transition-all duration-1000"
+            />
+            {/* Dark vignette so text stays readable */}
+            <div className="absolute inset-0 bg-[#0A0B12]/65" />
+          </>
+        )}
+
+        {/* Violet aurora (always present, layered on top of / instead of album art) */}
         <div
-          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] sm:w-[950px] h-[400px] rounded-full opacity-30 blur-[100px]"
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] sm:w-[950px] h-[400px] rounded-full blur-[100px]"
           style={{
+            opacity: room.currentTrack ? 0.15 : 0.30,
             background: 'radial-gradient(ellipse at center, rgba(139, 92, 246, 0.45) 0%, rgba(217, 70, 239, 0.2) 45%, transparent 70%)',
+            transition: 'opacity 1s ease',
           }}
         />
         {/* Subtle bottom-right indigo warm fill */}
