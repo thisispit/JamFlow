@@ -356,51 +356,80 @@ export default function RoomPage() {
   const host = room.users.find(u => u.isHost);
 
   return (
-    <main className="h-[100dvh] bg-[#09090B] flex flex-col overflow-hidden text-zinc-100">
+    <main className="relative h-[100dvh] bg-[#0A0B12] flex flex-col overflow-hidden text-zinc-100 selection:bg-[#8B5CF6]/30">
+      {/* ── Ambient Studio Atmosphere (rich depth, eliminates harsh pitch black) ── */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        {/* Top vibrant violet-fuchsia aurora bloom */}
+        <div
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] sm:w-[950px] h-[400px] rounded-full opacity-30 blur-[100px]"
+          style={{
+            background: 'radial-gradient(ellipse at center, rgba(139, 92, 246, 0.45) 0%, rgba(217, 70, 239, 0.2) 45%, transparent 70%)',
+          }}
+        />
+        {/* Subtle bottom-right indigo warm fill */}
+        <div
+          className="absolute -bottom-36 -right-20 w-[450px] h-[350px] rounded-full opacity-20 blur-[90px]"
+          style={{
+            background: 'radial-gradient(circle, rgba(139, 92, 246, 0.35) 0%, transparent 65%)',
+          }}
+        />
+        {/* Subtle micro dot texture */}
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] opacity-20" />
+      </div>
+
       <FloatingReactions reactions={reactions} />
 
       {/* Error toast */}
       {errorMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-white text-xs shadow-xl flex items-center gap-2 whitespace-nowrap">
-          <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-          {errorMessage}
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-zinc-900/95 border border-rose-500/30 text-white text-xs shadow-2xl backdrop-blur-md flex items-center gap-2 whitespace-nowrap">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{errorMessage}</span>
         </div>
       )}
 
       {/* Success / Action toast */}
       {toastMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-zinc-900/95 border border-[#8B5CF6]/40 text-white text-xs shadow-2xl backdrop-blur-md flex items-center gap-2 whitespace-nowrap pointer-events-none">
-          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-          <span className="font-medium">{toastMessage}</span>
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-zinc-900/95 border border-[#8B5CF6]/40 text-white text-xs shadow-2xl backdrop-blur-md flex items-center gap-2 whitespace-nowrap pointer-events-none">
+          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="font-semibold">{toastMessage}</span>
         </div>
       )}
 
-      {/* ── Top bar ── */}
-      <header className="shrink-0 h-13 px-2.5 sm:px-4 md:px-6 flex items-center justify-between border-b border-[#242429] bg-[#09090B] z-20 select-none">
-        {/* Left: ● JamFlow    JAM-ZM58 ⧉ · chill2 */}
-        <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
-          <button onClick={() => router.push('/')} className="flex items-center gap-1.5 sm:gap-2 text-zinc-300 hover:text-white transition-colors shrink-0">
-            <span className="w-2 h-2 rounded-full bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
-            <span className="text-sm font-bold tracking-tight text-white">JamFlow</span>
+      {/* ── Top bar (Generous height, luxury glassmorphic studio island) ── */}
+      <header className="shrink-0 h-16 sm:h-18 px-3.5 sm:px-6 md:px-8 flex items-center justify-between border-b border-white/[0.08] bg-[#0C0D16]/85 backdrop-blur-2xl z-20 select-none shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+        {/* Left: Brand + Room Code Pill */}
+        <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center gap-2 text-zinc-300 hover:text-white transition-all group shrink-0 active:scale-95"
+          >
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.45)] p-[1px]">
+              <div className="w-full h-full bg-[#0C0D16] rounded-[11px] flex items-center justify-center">
+                <Radio className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+              </div>
+            </div>
+            <span className="text-base font-black tracking-tight text-white hidden xs:inline">
+              Jam<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C084FC] to-[#F472B6]">Flow</span>
+            </span>
           </button>
 
           {/* Room Code · Room Name */}
-          <div className="flex items-center gap-1.5 sm:gap-2 text-xs min-w-0">
+          <div className="flex items-center gap-2 text-xs min-w-0">
             <button
               onClick={() => copyToClipboard(room.id, 'code')}
-              className="flex items-center gap-1 sm:gap-1.5 font-mono font-bold text-zinc-200 hover:text-white transition-colors bg-[#111114] px-2 py-1 sm:px-2.5 rounded-lg border border-[#242429] shrink-0"
+              className="flex items-center gap-1.5 font-mono font-bold text-zinc-200 hover:text-white transition-all bg-white/[0.05] hover:bg-white/[0.09] active:scale-95 px-3 py-1.5 rounded-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] shrink-0"
               title="Click to copy room code"
             >
-              <span>{room.id}</span>
+              <span className="tracking-wide">{room.id}</span>
               {copiedField === 'code' ? (
-                <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               ) : (
-                <Copy className="w-3 h-3 text-zinc-500 hover:text-zinc-300 shrink-0" />
+                <Copy className="w-3.5 h-3.5 text-zinc-400 hover:text-zinc-200 shrink-0" />
               )}
             </button>
 
             {room.name && (
-              <div className="hidden sm:flex items-center gap-1.5 text-zinc-400 font-medium truncate max-w-[120px] md:max-w-[200px]" title={room.name}>
+              <div className="hidden sm:flex items-center gap-1.5 text-zinc-400 text-xs font-medium truncate max-w-[130px] md:max-w-[200px]" title={room.name}>
                 <span className="text-zinc-600 font-bold select-none">·</span>
                 <span className="truncate">{room.name}</span>
               </div>
@@ -408,32 +437,35 @@ export default function RoomPage() {
           </div>
         </div>
 
-        {/* Right: ● SYNCED    ● LIVE N LISTENING    👑 pitamber    Share    Leave */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          {/* ● SYNCED */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#111114] border border-[#242429] text-[10px] font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#8B5CF6] shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
-            <span className="text-zinc-300 font-semibold">SYNCED</span>
+        {/* Right: SYNCED · LIVE LISTENERS · HOST · SHARE · LEAVE */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* SYNCED badge */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono">
+            <span className="w-2 h-2 rounded-full bg-[#8B5CF6] shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
+            <span className="text-zinc-300 font-semibold tracking-wide">SYNCED</span>
           </div>
 
-          {/* ● LIVE N LISTENING / Mobile Compact: ● 👥 N */}
+          {/* LIVE LISTENERS button */}
           <button
             onClick={() => setIsListeningNowOpen(prev => !prev)}
-            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-[#111114] border border-[#242429] hover:border-white/20 transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] hover:border-white/20 active:scale-95 transition-all cursor-pointer shadow-sm"
             title="Click to view listening participants"
           >
-            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#D946EF] animate-pulse shadow-[0_0_8px_rgba(217,70,239,0.8)]" />
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D946EF] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D946EF]" />
+            </span>
             <Users className="w-3.5 h-3.5 text-zinc-400 sm:hidden" />
-            <span className="font-bold text-white text-[11px] whitespace-nowrap">
+            <span className="font-bold text-white text-xs whitespace-nowrap">
               <span className="hidden sm:inline">LIVE </span>
               {room.users.length}
               <span className="hidden sm:inline"> LISTENING</span>
             </span>
           </button>
 
-          {/* 👑 Host / DJ badge */}
+          {/* 👑 Host badge */}
           {host && (
-            <div className="hidden md:flex items-center gap-1.5 text-xs text-zinc-300 bg-[#111114] px-2.5 py-1 rounded-lg border border-[#242429]">
+            <div className="hidden md:flex items-center gap-1.5 text-xs text-zinc-300 bg-white/[0.05] px-3 py-1.5 rounded-xl border border-white/[0.08]">
               <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span className="font-medium truncate max-w-[110px]">
                 {currentUser?.isHost ? `${currentUser.username} (Host)` : host.username}
@@ -441,24 +473,24 @@ export default function RoomPage() {
             </div>
           )}
 
-          {/* Host Settings button */}
+          {/* Host Settings */}
           {currentUser?.isHost && (
             <button
               onClick={() => setIsSettingsOpen(prev => !prev)}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white bg-[#111114] hover:bg-zinc-800 border border-[#242429] transition-colors"
+              className="p-2 sm:p-2.5 rounded-xl text-zinc-400 hover:text-white bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] active:scale-95 transition-all"
               title="Room Settings"
             >
-              <Settings className="w-3.5 h-3.5" />
+              <Settings className="w-4 h-4" />
             </button>
           )}
 
           {/* Share button */}
           <button
             onClick={handleShareToggle}
-            className={`p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${
               isShareOpen
-                ? 'bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] text-white shadow-md shadow-[#8B5CF6]/30'
-                : 'text-zinc-300 hover:text-white bg-[#111114] hover:bg-zinc-800 border border-[#242429]'
+                ? 'bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] text-white shadow-lg shadow-[#8B5CF6]/30'
+                : 'text-zinc-200 hover:text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.09] shadow-sm'
             }`}
             title="Share Room"
           >
@@ -466,13 +498,14 @@ export default function RoomPage() {
             <span className="hidden sm:inline">Share</span>
           </button>
 
-          {/* Leave room — slight red tinted */}
+          {/* Leave room */}
           <button
             onClick={handleLeaveRoom}
-            className="p-1.5 rounded-lg text-rose-400/90 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 transition-colors shadow-xs"
+            className="p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium text-rose-400/90 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm"
             title="Leave room"
           >
             <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden md:inline font-semibold">Leave</span>
           </button>
         </div>
       </header>
@@ -480,21 +513,21 @@ export default function RoomPage() {
       {/* ── LISTENING NOW Modal / Popover ── */}
       {isListeningNowOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center sm:items-start sm:justify-start sm:pt-14 p-4 sm:pl-32 bg-black/60 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
           onClick={() => setIsListeningNowOpen(false)}
         >
           <div
-            className="relative w-full max-w-sm rounded-2xl bg-[#111114] border border-[#242429] p-4 shadow-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
+            className="relative w-full max-w-sm rounded-3xl bg-[#121320]/95 border border-white/[0.1] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-2.5 border-b border-[#242429] mb-3">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-3.5">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-white">Listeners ({room.users.length})</h3>
               </div>
               <button
                 onClick={() => setIsListeningNowOpen(false)}
-                className="w-6 h-6 rounded-full bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -505,9 +538,9 @@ export default function RoomPage() {
               {room.users.map(u => {
                 const isMe = u.id === currentUser?.id;
                 return (
-                  <div key={u.id} className="flex items-center justify-between py-2 px-2.5 rounded-xl bg-zinc-950/80 border border-[#242429]">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center text-[10px] font-bold text-white uppercase shrink-0">
+                  <div key={u.id} className="flex items-center justify-between py-2 px-3 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center text-xs font-bold text-white uppercase shrink-0 shadow-sm">
                         {u.username.slice(0, 1)}
                       </div>
                       <span className={`text-xs truncate ${isMe ? 'font-bold text-white' : 'text-zinc-300'}`}>
@@ -517,7 +550,7 @@ export default function RoomPage() {
 
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
                       {u.isHost ? (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-semibold text-amber-400 flex items-center gap-1">
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-semibold text-amber-400 flex items-center gap-1">
                           <Crown className="w-2.5 h-2.5" /> Host
                         </span>
                       ) : (
@@ -528,10 +561,10 @@ export default function RoomPage() {
                               <button
                                 type="button"
                                 onClick={() => handleToggleDJ(u.id)}
-                                className={`px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors ${
+                                className={`px-2.5 py-1 rounded-xl text-[10px] font-semibold border transition-all active:scale-95 ${
                                   u.isDJ
                                     ? 'bg-[#8B5CF6]/20 border-[#8B5CF6]/40 text-[#C084FC] hover:bg-rose-500/20 hover:border-rose-500/30 hover:text-rose-400'
-                                    : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white hover:border-[#8B5CF6]'
+                                    : 'bg-white/[0.05] border-white/[0.08] text-zinc-400 hover:text-white hover:border-[#8B5CF6]'
                                 }`}
                                 title={u.isDJ ? 'Click to revoke DJ status' : 'Click to make DJ'}
                               >
@@ -544,15 +577,15 @@ export default function RoomPage() {
                                     handleTransferHost(u.id);
                                   }
                                 }}
-                                className="p-1 rounded-md text-zinc-500 hover:text-amber-400 hover:bg-amber-400/10 border border-transparent hover:border-amber-400/20 transition-colors"
+                                className="p-1 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-amber-400/10 border border-transparent hover:border-amber-400/20 transition-colors"
                                 title="Transfer Host role"
                               >
-                                <Crown className="w-3 h-3" />
+                                <Crown className="w-3.5 h-3.5" />
                               </button>
                             </>
                           )}
                           {!currentUser?.isHost && u.isDJ && (
-                            <span className="px-2 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[10px] font-mono font-semibold text-[#8B5CF6]">
+                            <span className="px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[10px] font-mono font-semibold text-[#8B5CF6]">
                               DJ
                             </span>
                           )}
@@ -566,16 +599,16 @@ export default function RoomPage() {
 
             {/* Quick settings link for host */}
             {currentUser?.isHost && (
-              <div className="mt-3 pt-2.5 border-t border-[#242429] flex justify-end">
+              <div className="mt-3.5 pt-3 border-t border-white/[0.08] flex justify-end">
                 <button
                   type="button"
                   onClick={() => {
                     setIsListeningNowOpen(false);
                     setIsSettingsOpen(true);
                   }}
-                  className="flex items-center gap-1.5 text-xs text-[#C084FC] hover:text-white transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[#C084FC] hover:text-white transition-colors"
                 >
-                  <Settings className="w-3 h-3" />
+                  <Settings className="w-3.5 h-3.5" />
                   <span>Room Settings</span>
                 </button>
               </div>
@@ -587,15 +620,15 @@ export default function RoomPage() {
       {/* ── Room Settings Modal ── */}
       {isSettingsOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
           onClick={e => { if (e.target === e.currentTarget) setIsSettingsOpen(false); }}
         >
           <div
-            className="relative w-full max-w-sm rounded-2xl bg-[#111114] border border-[#242429] p-5 shadow-2xl backdrop-blur-xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
+            className="relative w-full max-w-sm rounded-3xl bg-[#121320]/95 border border-white/[0.1] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#242429] mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center shadow-md shadow-[#8B5CF6]/25">
                   <Settings className="w-4 h-4 text-white" />
@@ -607,7 +640,7 @@ export default function RoomPage() {
               </div>
               <button
                 onClick={() => setIsSettingsOpen(false)}
-                className="w-7 h-7 rounded-full bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -618,19 +651,19 @@ export default function RoomPage() {
                 Only the room host can modify these settings.
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3.5">
                 {/* Playback Control Permission */}
-                <div className="p-3 rounded-xl bg-zinc-950/80 border border-[#242429]">
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-zinc-200">Playback Controls</span>
                     <span className="text-[10px] font-mono text-zinc-400">
                       {room.settings.isOpenControl ? 'Everyone' : 'Host & DJs'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 mb-2">
+                  <p className="text-[11px] text-zinc-500 mb-2.5">
                     Who can play, pause, seek, and skip tracks.
                   </p>
-                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#111114] border border-[#242429] rounded-xl">
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                     <button
                       type="button"
                       onClick={() => handleUpdateSettings({ isOpenControl: false })}
@@ -657,17 +690,17 @@ export default function RoomPage() {
                 </div>
 
                 {/* Queue Adding Permission */}
-                <div className="p-3 rounded-xl bg-zinc-950/80 border border-[#242429]">
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-zinc-200">Queue Permission</span>
                     <span className="text-[10px] font-mono text-zinc-400">
                       {room.settings.isOpenQueue ? 'Everyone' : 'Host & DJs'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 mb-2">
+                  <p className="text-[11px] text-zinc-500 mb-2.5">
                     Who can add new songs to the playlist queue.
                   </p>
-                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#111114] border border-[#242429] rounded-xl">
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                     <button
                       type="button"
                       onClick={() => handleUpdateSettings({ isOpenQueue: true })}
@@ -694,14 +727,14 @@ export default function RoomPage() {
                 </div>
 
                 {/* Vote Skip Threshold */}
-                <div className="p-3 rounded-xl bg-zinc-950/80 border border-[#242429]">
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-zinc-200">Vote Skip Threshold</span>
                     <span className="text-[10px] font-mono text-[#C084FC] font-bold">
                       {room.settings.skipThresholdPercent}%
                     </span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 mb-2">
+                  <p className="text-[11px] text-zinc-500 mb-2.5">
                     Percentage of listeners required to skip a track.
                   </p>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -710,10 +743,10 @@ export default function RoomPage() {
                         key={pct}
                         type="button"
                         onClick={() => handleUpdateSettings({ skipThresholdPercent: pct })}
-                        className={`py-1.5 px-2 rounded-lg text-xs font-semibold border transition-all ${
+                        className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all ${
                           room.settings.skipThresholdPercent === pct
-                            ? 'bg-[#8B5CF6]/20 border-[#8B5CF6] text-[#C084FC] shadow-sm'
-                            : 'bg-[#111114] border-[#242429] text-zinc-400 hover:text-white hover:border-zinc-700'
+                            ? 'bg-[#8B5CF6]/25 border-[#8B5CF6] text-[#C084FC] shadow-sm'
+                            : 'bg-white/[0.03] border-white/[0.06] text-zinc-400 hover:text-white hover:border-white/20'
                         }`}
                       >
                         {pct}% {pct === 33 ? 'Fast' : pct === 50 ? 'Default' : 'Strict'}
@@ -730,17 +763,17 @@ export default function RoomPage() {
       {/* ── Share Modal / Popover ── */}
       {isShareOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
           onClick={e => { if (e.target === e.currentTarget) setIsShareOpen(false); }}
         >
           <div
-            className="relative w-full max-w-sm rounded-2xl bg-zinc-900/95 border border-white/10 p-5 shadow-2xl backdrop-blur-xl text-zinc-100"
+            className="relative w-full max-w-sm rounded-3xl bg-[#121320]/95 border border-white/[0.1] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-fuchsia-600 to-purple-600 flex items-center justify-center shadow-md shadow-fuchsia-600/25">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center shadow-md shadow-[#8B5CF6]/25">
                   <Share2 className="w-4 h-4 text-white" />
                 </div>
                 <div>
@@ -750,21 +783,21 @@ export default function RoomPage() {
               </div>
               <button
                 onClick={() => setIsShareOpen(false)}
-                className="w-7 h-7 rounded-full bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {/* Room Code Box */}
-            <div className="mb-4 p-3 rounded-xl bg-zinc-950/90 border border-zinc-800 flex items-center justify-between">
+            <div className="mb-4 p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-between">
               <div>
                 <div className="text-[10px] uppercase font-mono tracking-wider text-zinc-500">Room Code</div>
                 <div className="text-lg font-mono font-bold text-white tracking-widest mt-0.5">{room.id}</div>
               </div>
               <button
                 onClick={() => copyToClipboard(room.id, 'code')}
-                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 flex items-center gap-1.5 transition-colors border border-zinc-700/60"
+                className="px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-zinc-200 flex items-center gap-1.5 transition-all border border-white/[0.08] active:scale-95"
               >
                 {copiedField === 'code' ? (
                   <>
@@ -790,12 +823,12 @@ export default function RoomPage() {
                   type="text"
                   readOnly
                   value={getShareUrl(room.id)}
-                  className="flex-1 min-w-0 bg-zinc-950/90 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono text-zinc-300 truncate focus:outline-none focus:border-zinc-600"
+                  className="flex-1 min-w-0 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs font-mono text-zinc-200 truncate focus:outline-none focus:border-[#8B5CF6]/60 shadow-inner"
                   onClick={e => (e.target as HTMLInputElement).select()}
                 />
                 <button
                   onClick={() => copyToClipboard(getShareUrl(room.id), 'link')}
-                  className="shrink-0 px-3.5 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-fuchsia-600/20"
+                  className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] hover:opacity-95 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#8B5CF6]/20 active:scale-95"
                 >
                   {copiedField === 'link' ? (
                     <>
@@ -813,7 +846,7 @@ export default function RoomPage() {
             </div>
 
             {/* Social / Direct Share */}
-            <div className="pt-3 border-t border-white/5 space-y-2">
+            <div className="pt-3.5 border-t border-white/[0.08] space-y-2">
               <div className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 mb-2">Share Directly</div>
               <div className="grid grid-cols-2 gap-2">
                 {/* WhatsApp */}
@@ -823,7 +856,7 @@ export default function RoomPage() {
                     const url = getShareUrl(room.id);
                     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + url)}`, '_blank');
                   }}
-                  className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 text-[#25D366] text-xs font-medium transition-colors"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 text-[#25D366] text-xs font-medium transition-all active:scale-95"
                 >
                   <MessageCircle className="w-3.5 h-3.5" />
                   <span>WhatsApp</span>
@@ -836,14 +869,14 @@ export default function RoomPage() {
                     const url = getShareUrl(room.id);
                     window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
                   }}
-                  className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/30 text-[#0088cc] text-xs font-medium transition-colors"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/30 text-[#0088cc] text-xs font-medium transition-all active:scale-95"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Telegram</span>
                 </button>
               </div>
 
-              {/* Native OS Share Button (Always available in modal if supported by OS, including Android/iOS) */}
+              {/* Native OS Share Button */}
               {hasNativeShare && (
                 <button
                   onClick={async () => {
@@ -861,7 +894,7 @@ export default function RoomPage() {
                       }
                     }
                   }}
-                  className="w-full mt-2 py-2 px-3 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 text-xs font-medium flex items-center justify-center gap-2 transition-colors border border-zinc-700/60"
+                  className="w-full mt-2 py-2.5 px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 text-xs font-medium flex items-center justify-center gap-2 transition-all border border-white/[0.08] active:scale-95"
                 >
                   <Smartphone className="w-3.5 h-3.5 text-zinc-400" />
                   <span>Open System Share ({isAndroid ? 'Android' : 'OS'})</span>
@@ -895,13 +928,13 @@ export default function RoomPage() {
             </div>
 
             {/* Queue / Chat — gets all remaining height */}
-            <div className="flex-1 min-h-0 flex flex-col border-t border-white/5 bg-zinc-950/90 backdrop-blur-xl">
+            <div className="flex-1 min-h-0 flex flex-col border-t border-white/[0.08] bg-[#0E0F18]/95 backdrop-blur-xl">
               {/* Sleek Segmented Switcher */}
-              <div className="shrink-0 px-4 py-2 bg-[#09090B] border-b border-[#242429]">
-                <div className="flex p-1 bg-[#111114] border border-[#242429] rounded-2xl shadow-inner">
+              <div className="shrink-0 px-4 py-2.5 bg-[#0C0D16]/80 border-b border-white/[0.06]">
+                <div className="flex p-1 bg-white/[0.04] border border-white/[0.08] rounded-2xl shadow-inner">
                   <button
                     onClick={() => switchTab('queue')}
-                    className={`flex-1 py-2 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
+                    className={`flex-1 py-2.5 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
                       mobileTab === 'queue'
                         ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
                         : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
@@ -914,7 +947,7 @@ export default function RoomPage() {
                         className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold transition-colors ${
                           mobileTab === 'queue'
                             ? 'bg-white/25 text-white'
-                            : 'bg-[#242429] text-zinc-400'
+                            : 'bg-white/[0.08] text-zinc-400'
                         }`}
                       >
                         {room.queue.length}
@@ -923,7 +956,7 @@ export default function RoomPage() {
                   </button>
                   <button
                     onClick={() => switchTab('chat')}
-                    className={`flex-1 py-2 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
+                    className={`flex-1 py-2.5 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
                       mobileTab === 'chat'
                         ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
                         : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
@@ -974,10 +1007,10 @@ export default function RoomPage() {
             </div>
 
             {/* Right — sidebar (~30% / 340-380px) */}
-            <div className="w-[340px] xl:w-[380px] shrink-0 border-l border-[#242429] flex flex-col bg-[#111114]">
+            <div className="w-[340px] xl:w-[380px] shrink-0 border-l border-white/[0.08] flex flex-col bg-[#0D0E17]/95 backdrop-blur-2xl">
               {/* Desktop Sidebar tab switcher */}
-              <div className="shrink-0 p-3 border-b border-[#242429] bg-[#111114]">
-                <div className="flex p-1 bg-[#09090B] border border-[#242429] rounded-xl shadow-inner">
+              <div className="shrink-0 p-3 border-b border-white/[0.06] bg-[#0C0D16]/80">
+                <div className="flex p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl shadow-inner">
                   <button
                     onClick={() => switchTab('queue')}
                     className={`flex-1 py-2 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-lg transition-all duration-200 ${
@@ -993,7 +1026,7 @@ export default function RoomPage() {
                         className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold transition-colors ${
                           desktopTab === 'queue'
                             ? 'bg-white/25 text-white'
-                            : 'bg-[#242429] text-zinc-400'
+                            : 'bg-white/[0.08] text-zinc-400'
                         }`}
                       >
                         {room.queue.length}

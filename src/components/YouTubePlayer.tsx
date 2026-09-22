@@ -508,13 +508,13 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         ref={playerRootRef}
         className={`select-none transition-all duration-300 ${
           isFullscreen
-            ? 'fixed inset-0 z-[99999] w-screen h-screen bg-[#09090B] p-4 flex flex-col justify-between overflow-hidden'
-            : 'relative w-full bg-[#09090B] border-b border-[#242429] p-3 sm:p-4 overflow-hidden shrink-0'
+            ? 'fixed inset-0 z-[99999] w-screen h-screen bg-[#0A0B12] p-4 flex flex-col justify-between overflow-hidden'
+            : 'relative w-full bg-[#0C0D16]/90 backdrop-blur-xl border-b border-white/[0.08] p-3 sm:p-4 overflow-hidden shrink-0'
         }`}
         style={{
           background: isFullscreen
-            ? '#09090B'
-            : 'radial-gradient(circle at 50% 25%, rgba(139, 92, 246, 0.09), transparent 60%), #09090B',
+            ? '#0A0B12'
+            : 'radial-gradient(circle at 50% 25%, rgba(139, 92, 246, 0.12), transparent 60%), #0C0D15',
         }}
       >
         {/* Dynamic blurred background */}
@@ -524,15 +524,15 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               <img
                 src={currentTrack.thumbnail}
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover scale-150 blur-2xl opacity-15"
+                className="absolute inset-0 w-full h-full object-cover scale-150 blur-2xl opacity-20"
               />
-              <div className="absolute inset-0 bg-[#09090B]/80" />
+              <div className="absolute inset-0 bg-[#0C0D15]/80" />
             </>
           ) : (
             <div
               className="absolute inset-0 w-full h-full scale-125 blur-3xl opacity-25 pointer-events-none"
               style={{
-                background: 'radial-gradient(ellipse at 50% 35%, rgba(139, 92, 246, 0.3) 0%, rgba(217, 70, 239, 0.15) 45%, transparent 70%)',
+                background: 'radial-gradient(ellipse at 50% 35%, rgba(139, 92, 246, 0.35) 0%, rgba(217, 70, 239, 0.18) 45%, transparent 70%)',
               }}
             />
           )}
@@ -648,18 +648,18 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                     <img
                       src={currentTrack.thumbnail}
                       alt=""
-                      className="absolute inset-0 w-full h-full object-cover scale-125 blur-xl opacity-35"
+                      className="absolute inset-0 w-full h-full object-cover scale-125 blur-xl opacity-30"
                     />
                     {/* Artwork image - visible and recognizable */}
                     <img
                       src={currentTrack.thumbnail}
                       alt={currentTrack.title}
-                      className="absolute inset-0 w-full h-full object-cover object-center scale-105 opacity-75"
+                      className="absolute inset-0 w-full h-full object-cover object-center scale-105 opacity-70"
                     />
                     {/* Top gradient for mode switcher clarity */}
-                    <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#09090B] via-[#09090B]/60 to-transparent" />
-                    {/* Bottom black gradient blur so title, artist, scrubber and controls are 100% visible */}
-                    <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#09090B] via-[#09090B]/80 via-40% to-transparent backdrop-blur-[2px]" />
+                    <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#0C0D15] via-[#0C0D15]/60 to-transparent" />
+                    {/* Bottom midnight gradient blur so title, artist, scrubber and controls are 100% visible */}
+                    <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#0C0D15] via-[#0C0D15]/85 via-45% to-transparent backdrop-blur-[2px]" />
                   </>
                 ) : (
                   <>
@@ -671,21 +671,21 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                       }}
                     />
                     {/* Top gradient */}
-                    <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#09090B] via-[#09090B]/60 to-transparent pointer-events-none" />
-                    {/* Bottom black gradient blur */}
-                    <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#09090B] via-[#09090B]/80 via-40% to-transparent backdrop-blur-[2px] pointer-events-none" />
+                    <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#0C0D15] via-[#0C0D15]/60 to-transparent pointer-events-none" />
+                    {/* Bottom gradient blur */}
+                    <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#0C0D15] via-[#0C0D15]/85 via-45% to-transparent backdrop-blur-[2px] pointer-events-none" />
                   </>
                 )}
               </div>
             )}
 
             {/* Mode switcher: AUDIO / VIDEO */}
-            <div className="relative z-10 mb-2 inline-flex items-center p-0.5 rounded-full bg-[#111114]/90 backdrop-blur-md border border-[#242429] shadow-sm">
+            <div className="relative z-10 mb-2.5 inline-flex items-center p-0.5 rounded-full bg-white/[0.06] backdrop-blur-xl border border-white/[0.08] shadow-inner">
               <button
                 onClick={() => handleToggleViewMode('song')}
-                className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all ${
                   viewMode === 'song'
-                    ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -694,9 +694,9 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               </button>
               <button
                 onClick={() => handleToggleViewMode('video')}
-                className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all ${
                   viewMode === 'video'
-                    ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -706,10 +706,10 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
             </div>
 
             {/* Visual Canvas Frame (Audio & Video take the EXACT SAME 16:9 space) */}
-            <div className="relative w-full max-w-sm aspect-video mx-auto my-1">
+            <div className="relative w-full max-w-sm aspect-video mx-auto my-1 flex items-center justify-center">
               {/* Video Layer — always mounted in DOM */}
               <div
-                className={`absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-[#242429] bg-black transition-opacity duration-300 ${
+                className={`absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black transition-opacity duration-300 ${
                   viewMode === 'video'
                     ? 'opacity-100 pointer-events-auto z-20'
                     : 'opacity-0 pointer-events-none -z-10'
@@ -719,7 +719,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 {viewMode === 'video' && (
                   <button
                     onClick={toggleFullscreen}
-                    className="absolute top-2 right-2 z-30 p-1.5 text-white/80 hover:text-white bg-black/60 backdrop-blur-md border border-white/10 rounded-lg transition-all shadow"
+                    className="absolute top-2 right-2 z-30 p-1.5 text-white/80 hover:text-white bg-black/60 backdrop-blur-md border border-white/10 rounded-xl transition-all shadow"
                     title="Fullscreen"
                   >
                     <Maximize className="w-3.5 h-3.5" />
@@ -727,29 +727,50 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 )}
               </div>
 
-              {/* In Song Mode when nothing is playing: Present JamFlow Album Art */}
-              {viewMode === 'song' && !currentTrack && (
+              {/* In Song Mode: Present Album Artwork Card or JamFlow Album Art */}
+              {viewMode === 'song' && (
                 <div className="relative z-10 w-full h-full flex items-center justify-center p-1">
-                  <JamFlowAlbumArt size="compact" />
+                  {currentTrack ? (
+                    <div
+                      className="relative h-full aspect-square max-h-[195px] rounded-2xl overflow-hidden shadow-2xl border border-white/15 transition-all duration-300 group"
+                      style={{
+                        boxShadow: isPlaying
+                          ? '0 14px 40px -5px rgba(0, 0, 0, 0.8), 0 0 35px rgba(139, 92, 246, 0.4)'
+                          : '0 10px 30px -5px rgba(0, 0, 0, 0.7)',
+                      }}
+                    >
+                      <img
+                        src={currentTrack.thumbnail}
+                        alt={currentTrack.title}
+                        className={`w-full h-full object-cover transition-transform duration-500 ${
+                          isPlaying ? 'scale-100' : 'scale-[0.97] opacity-90'
+                        }`}
+                      />
+                      {/* Subtle vinyl gloss / glass sheen */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/15 pointer-events-none" />
+                    </div>
+                  ) : (
+                    <JamFlowAlbumArt size="compact" />
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Track Info (Crisp drop-shadow on top of gradient blur) */}
-            <div className="relative z-10 text-center w-full max-w-xs px-3 mt-1">
-              <p className="text-white text-base xs:text-lg font-bold truncate leading-tight tracking-tight drop-shadow-md">
+            {/* Track Info */}
+            <div className="relative z-10 text-center w-full max-w-xs px-2 mt-1.5">
+              <p className="text-white text-base xs:text-lg font-black tracking-tight truncate leading-tight drop-shadow-md">
                 {currentTrack?.title ?? 'Nothing in the flow'}
               </p>
-              <p className="text-zinc-300/90 text-xs truncate mt-0.5 drop-shadow-sm">
+              <p className="text-zinc-300/90 text-xs font-medium truncate mt-0.5 drop-shadow-sm">
                 {currentTrack?.author ?? 'Add a track to start listening together'}
               </p>
             </div>
 
-            {/* Scrubber Bar (Clean timestamps without synced text) */}
+            {/* Scrubber Bar */}
             <div className="relative z-10 w-full max-w-xs mt-2.5 space-y-1">
-              <div className="relative w-full h-1.5 bg-white/20 hover:bg-white/30 rounded-full cursor-pointer transition-colors">
+              <div className="relative w-full h-2 bg-white/[0.12] hover:bg-white/[0.18] rounded-full cursor-pointer transition-colors group">
                 <div
-                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] rounded-full shadow-[0_0_8px_rgba(139,92,246,0.8)]"
+                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#D946EF] rounded-full shadow-[0_0_12px_rgba(139,92,246,0.9)]"
                   style={{ width: `${progress}%` }}
                 />
                 <input
@@ -763,17 +784,17 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                 />
               </div>
-              <div className="flex justify-between items-center text-[10px] font-mono text-zinc-400 px-0.5">
+              <div className="flex justify-between items-center text-[11px] font-mono font-medium text-zinc-400 px-0.5">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration || currentTrack?.duration || 0)}</span>
               </div>
             </div>
 
             {/* Controls Row */}
-            <div className="relative z-10 w-full max-w-xs flex items-center justify-between px-2 mt-1.5 pb-1">
+            <div className="relative z-10 w-full max-w-xs flex items-center justify-between px-1 mt-2 pb-1">
               <button
                 onClick={handleToggleMute}
-                className="p-2 text-zinc-400 hover:text-white transition-colors"
+                className="w-10 h-10 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shadow-sm"
                 title={isMuted ? "Unmute" : "Mute"}
               >
                 {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -783,7 +804,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 <button
                   onClick={handleResync}
                   title="Sync with Host"
-                  className={`p-2 transition-colors rounded-full hover:bg-white/10 active:scale-95 ${
+                  className={`w-10 h-10 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center transition-all active:scale-95 shadow-sm ${
                     isSyncing ? 'text-amber-400' : 'text-zinc-400 hover:text-white'
                   }`}
                 >
@@ -793,10 +814,10 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 <button
                   onClick={handleTogglePlay}
                   disabled={!canControl || !currentTrack}
-                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg ${
+                  className={`w-13 h-13 rounded-full flex items-center justify-center transition-all shadow-xl ${
                     !canControl || !currentTrack
                       ? 'bg-white/10 text-white/20 cursor-not-allowed'
-                      : 'bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] text-white hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(139,92,246,0.4)]'
+                      : 'bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] text-white hover:scale-105 active:scale-95 shadow-[0_0_22px_rgba(139,92,246,0.5),inset_0_1px_0_rgba(255,255,255,0.3)]'
                   }`}
                   title={!canControl ? 'Only Host or DJ can control playback' : isPlaying ? 'Pause' : 'Play'}
                 >
@@ -810,7 +831,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 <button
                   onClick={onSkipNext}
                   disabled={!canControl || !hasQueue}
-                  className="p-2 text-zinc-400 hover:text-white transition-colors rounded-full hover:bg-white/5 disabled:opacity-20 disabled:cursor-not-allowed"
+                  className="w-10 h-10 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed shadow-sm"
                   title={hasQueue ? "Skip to Next Track" : "Queue is empty"}
                 >
                   <FastForward className="w-4 h-4" />
@@ -819,7 +840,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
               <button
                 onClick={toggleFullscreen}
-                className="p-2 text-zinc-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                className="w-10 h-10 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shadow-sm"
                 title="Fullscreen"
               >
                 <Maximize className="w-4 h-4" />
@@ -858,13 +879,13 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       ref={playerRootRef}
       className={`select-none transition-all duration-300 ${
         isFullscreen
-          ? 'fixed inset-0 z-[99999] w-screen h-screen bg-[#09090B] p-6 md:p-8 flex flex-col justify-between overflow-hidden'
-          : 'relative w-full h-full flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden py-6 px-6 lg:px-10 bg-[#09090B]'
+          ? 'fixed inset-0 z-[99999] w-screen h-screen bg-[#0A0B12] p-6 md:p-8 flex flex-col justify-between overflow-hidden'
+          : 'relative w-full h-full flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden py-6 px-6 lg:px-10 bg-[#0A0B12]'
       }`}
       style={{
         background: isFullscreen
-          ? '#09090B'
-          : 'radial-gradient(circle at 50% 35%, rgba(139, 92, 246, 0.08), transparent 45%), #09090B',
+          ? '#0A0B12'
+          : 'radial-gradient(circle at 50% 35%, rgba(139, 92, 246, 0.12), transparent 48%), #0A0B12',
       }}
     >
       {/* Dynamic ambient background glow */}
@@ -873,13 +894,13 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           <img
             src={currentTrack.thumbnail}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover scale-150 blur-3xl opacity-15"
+            className="absolute inset-0 w-full h-full object-cover scale-150 blur-3xl opacity-20"
           />
         ) : (
           <div
             className="absolute inset-0 w-full h-full scale-125 blur-3xl opacity-25 pointer-events-none"
             style={{
-              background: 'radial-gradient(ellipse at 50% 35%, rgba(139, 92, 246, 0.32) 0%, rgba(217, 70, 239, 0.16) 45%, transparent 70%)',
+              background: 'radial-gradient(ellipse at 50% 35%, rgba(139, 92, 246, 0.35) 0%, rgba(217, 70, 239, 0.18) 45%, transparent 70%)',
             }}
           />
         )}
@@ -897,7 +918,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       )}
 
       {/* Top Switcher: AUDIO / VIDEO */}
-      <div className="relative z-20 mb-4 inline-flex items-center p-1 rounded-full bg-[#111114] border border-[#242429] shadow-lg shrink-0">
+      <div className="relative z-20 mb-4 inline-flex items-center p-1 rounded-full bg-white/[0.05] border border-white/[0.08] backdrop-blur-xl shadow-lg shrink-0">
         <button
           onClick={() => handleToggleViewMode('song')}
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
@@ -926,7 +947,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       <div className="relative z-10 flex items-center justify-center shrink-0">
         {/* Video Player Layer — always mounted */}
         <div
-          className={`rounded-2xl overflow-hidden shadow-2xl border border-[#242429] bg-black transition-all duration-300 ${
+          className={`rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black transition-all duration-300 ${
             viewMode === 'video'
               ? 'w-full max-w-2xl aspect-video relative opacity-100 pointer-events-auto'
               : 'w-0 h-0 opacity-0 pointer-events-none absolute'
@@ -947,24 +968,26 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         {/* Album Art Layer (Song Mode) */}
         {viewMode === 'song' && (
           <div
-            className="relative w-[260px] h-[260px] sm:w-[300px] sm:h-[300px] lg:w-[340px] lg:h-[340px] aspect-square rounded-2xl overflow-hidden border border-[#242429] bg-[#111114] shadow-2xl transition-all duration-300"
+            className="relative w-[260px] h-[260px] sm:w-[300px] sm:h-[300px] lg:w-[340px] lg:h-[340px] aspect-square rounded-3xl overflow-hidden border border-white/15 bg-[#121320] shadow-2xl transition-all duration-300"
             style={{
               boxShadow: isPlaying && currentTrack
-                ? '0 0 50px -10px rgba(139, 92, 246, 0.35), 0 20px 40px -15px rgba(0,0,0,0.85)'
-                : '0 20px 40px -15px rgba(0,0,0,0.8)',
+                ? '0 25px 60px -10px rgba(0, 0, 0, 0.9), 0 0 45px rgba(139, 92, 246, 0.4)'
+                : '0 20px 40px -15px rgba(0,0,0,0.85)',
             }}
           >
             {currentTrack?.thumbnail ? (
               <img
                 src={currentTrack.thumbnail}
                 alt={currentTrack.title}
-                className={`w-full h-full object-cover rounded-2xl transition-transform duration-500 ${
+                className={`w-full h-full object-cover rounded-3xl transition-transform duration-500 ${
                   isPlaying ? 'scale-100' : 'scale-[0.96] opacity-80'
                 }`}
               />
             ) : (
               <JamFlowAlbumArt size="default" />
             )}
+            {/* Subtle glass reflection overlay */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none rounded-3xl" />
           </div>
         )}
       </div>

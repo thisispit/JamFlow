@@ -558,13 +558,13 @@ export default function HomePage() {
   };
 
   return (
-    <main className="relative min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden bg-[#070709] overflow-x-hidden flex flex-col justify-between select-none">
+    <main className="relative min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden bg-[#0A0B12] overflow-x-hidden flex flex-col justify-between select-none">
 
       {/* ── Grain texture ─────────────────────────────────────────────── */}
       <svg
         aria-hidden="true"
         className="fixed inset-0 w-full h-full pointer-events-none"
-        style={{ zIndex: 1, opacity: 0.05 }}
+        style={{ zIndex: 1, opacity: 0.04 }}
         xmlns="http://www.w3.org/2000/svg"
       >
         <filter id="grain">
@@ -581,7 +581,7 @@ export default function HomePage() {
         style={{
           top: '-120px', left: '50%', transform: 'translateX(-50%)',
           width: '950px', height: '550px',
-          background: 'radial-gradient(ellipse at top, rgba(139,92,246,0.22) 0%, rgba(217,70,239,0.1) 40%, transparent 70%)',
+          background: 'radial-gradient(ellipse at top, rgba(139,92,246,0.25) 0%, rgba(217,70,239,0.12) 40%, transparent 70%)',
           zIndex: 0,
         }}
       />
@@ -591,34 +591,34 @@ export default function HomePage() {
         style={{
           bottom: '-60px', right: '-120px',
           width: '650px', height: '500px',
-          background: 'radial-gradient(ellipse at bottom-right, rgba(217,70,239,0.12) 0%, rgba(139,92,246,0.08) 50%, transparent 70%)',
+          background: 'radial-gradient(ellipse at bottom-right, rgba(217,70,239,0.14) 0%, rgba(139,92,246,0.09) 50%, transparent 70%)',
           zIndex: 0,
         }}
       />
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="relative z-20 flex items-center justify-between px-6 sm:px-10 lg:px-14 pt-4 pb-2 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="relative w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.4)] p-[1px]">
-            <div className="w-full h-full bg-[#080808]/50 rounded-[11px] flex items-center justify-center backdrop-blur-sm">
-              <Radio className="w-4 h-4 text-white" />
+      {/* ── Header (Generous height, luxury glassmorphic navbar) ─────────── */}
+      <header className="relative z-20 h-18 sm:h-20 flex items-center justify-between px-6 sm:px-10 lg:px-14 flex-shrink-0 border-b border-white/[0.05] bg-[#0A0B12]/60 backdrop-blur-xl">
+        <div className="flex items-center gap-3.5">
+          <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.45)] p-[1px]">
+            <div className="w-full h-full bg-[#0A0B12] rounded-[15px] flex items-center justify-center backdrop-blur-sm">
+              <Radio className="w-4.5 h-4.5 text-white" />
             </div>
           </div>
           <div>
-            <h1 className="text-base font-black tracking-tight text-white leading-none flex items-center gap-1.5">
+            <h1 className="text-base sm:text-lg font-black tracking-tight text-white leading-none flex items-center gap-1.5">
               Jam<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C084FC] via-[#E879F9] to-[#F472B6]">Flow</span>
             </h1>
-            <p className="text-[9px] font-mono tracking-widest text-zinc-500 uppercase leading-none mt-1">
+            <p className="text-[9px] font-mono tracking-widest text-zinc-400 uppercase leading-none mt-1">
               Synchronized Listening
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/80 border border-zinc-800/90 backdrop-blur-md shadow-lg shadow-black/30">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-          <span className="text-[11px] font-mono text-zinc-300">Live Sync</span>
-          <span className="hidden sm:inline text-zinc-700 font-mono text-[10px]">|</span>
-          <span className="hidden sm:inline text-[10px] font-mono text-emerald-400 font-semibold">&lt;1ms</span>
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] backdrop-blur-md shadow-lg shadow-black/30">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+          <span className="text-xs font-mono font-medium text-zinc-200">Live Sync</span>
+          <span className="hidden sm:inline text-zinc-600 font-mono text-[10px]">|</span>
+          <span className="hidden sm:inline text-[11px] font-mono text-emerald-400 font-bold">&lt;1ms</span>
         </div>
       </header>
 
