@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Play, Pause, Volume2, VolumeX, RotateCcw, Music, Music2, Film, Maximize, Minimize, FastForward, Crown, Radio } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, RotateCcw, Music, Music2, Film, Maximize, Minimize, FastForward, Crown, Radio, ChevronDown } from 'lucide-react';
 import { Track, PlaybackState, User } from '@/types';
 import { formatTime } from '@/lib/youtube';
 
@@ -161,7 +161,10 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   // YouTube Music style Song vs Video toggle
   const [viewMode, setViewMode] = useState<'song' | 'video'>('song');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFullscreenControls, setShowFullscreenControls] = useState(true);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const playerRootRef = useRef<HTMLDivElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -170,8 +173,21 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     } catch {}
   }, []);
 
+  const resetControlsTimer = useCallback(() => {
+    setShowFullscreenControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    if (playbackStateRef.current === 'playing') {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowFullscreenControls(false);
+      }, 3000);
+    }
+  }, []);
+
   const enterFullscreen = useCallback(() => {
-    const el = playerRootRef.current;
+    setViewMode('video');
+    const el = videoContainerRef.current || playerRootRef.current;
     if (el) {
       const isCurrentlyFs = !!(
         document.fullscreenElement ||
@@ -180,34 +196,59 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         (document as any).msFullscreenElement
       );
       if (!isCurrentlyFs) {
-        const p = el.requestFullscreen?.() ||
-          (el as any).webkitRequestFullscreen?.() ||
-          (el as any).mozRequestFullScreen?.() ||
-          (el as any).msRequestFullscreen?.();
-        if (p && typeof p.catch === 'function') {
-          p.catch(() => {});
-        }
+        try {
+          const p = el.requestFullscreen?.() ||
+            (el as any).webkitRequestFullscreen?.() ||
+            (el as any).mozRequestFullScreen?.() ||
+            (el as any).msRequestFullscreen?.();
+          if (p && typeof p.catch === 'function') {
+            p.catch(() => {});
+          }
+        } catch {}
       }
     }
     setIsFullscreen(true);
-  }, []);
+    setShowFullscreenControls(true);
+    resetControlsTimer();
+    // Guarantee continuous playback across fullscreen geometry changes
+    if (playbackStateRef.current === 'playing') {
+      setTimeout(() => {
+        try {
+          if (playerRef.current?.getPlayerState?.() !== window.YT?.PlayerState?.PLAYING) {
+            playerRef.current?.playVideo?.();
+          }
+        } catch {}
+      }, 150);
+    }
+  }, [resetControlsTimer]);
 
   const exitFullscreen = useCallback(() => {
-    if (
-      document.fullscreenElement ||
-      (document as any).webkitFullscreenElement ||
-      (document as any).mozFullScreenElement ||
-      (document as any).msFullscreenElement
-    ) {
-      const exit = document.exitFullscreen?.() ||
-        (document as any).webkitExitFullscreen?.() ||
-        (document as any).mozCancelFullScreen?.() ||
-        (document as any).msExitFullscreen?.();
-      if (exit && typeof exit.catch === 'function') {
-        exit.catch(() => {});
+    try {
+      if (
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      ) {
+        const exit = document.exitFullscreen?.() ||
+          (document as any).webkitExitFullscreen?.() ||
+          (document as any).mozCancelFullScreen?.() ||
+          (document as any).msExitFullscreen?.();
+        if (exit && typeof exit.catch === 'function') {
+          exit.catch(() => {});
+        }
       }
-    }
+    } catch {}
     setIsFullscreen(false);
+    if (playbackStateRef.current === 'playing') {
+      setTimeout(() => {
+        try {
+          if (playerRef.current?.getPlayerState?.() !== window.YT?.PlayerState?.PLAYING) {
+            playerRef.current?.playVideo?.();
+          }
+        } catch {}
+      }, 150);
+    }
   }, []);
 
   const handleToggleViewMode = useCallback((mode: 'song' | 'video') => {
@@ -225,6 +266,16 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     }
   }, [isFullscreen, enterFullscreen, exitFullscreen]);
 
+  // Keep controls visible when paused; auto-hide when playing in fullscreen
+  useEffect(() => {
+    if (playbackState !== 'playing') {
+      setShowFullscreenControls(true);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    } else if (isFullscreen) {
+      resetControlsTimer();
+    }
+  }, [playbackState, isFullscreen, resetControlsTimer]);
+
   useEffect(() => {
     const onFsChange = () => {
       const isFs = !!(
@@ -234,6 +285,19 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         (document as any).msFullscreenElement
       );
       setIsFullscreen(isFs);
+      if (isFs) {
+        setShowFullscreenControls(true);
+        resetControlsTimer();
+      }
+      if (playbackStateRef.current === 'playing') {
+        setTimeout(() => {
+          try {
+            if (playerRef.current?.getPlayerState?.() !== window.YT?.PlayerState?.PLAYING) {
+              playerRef.current?.playVideo?.();
+            }
+          } catch {}
+        }, 150);
+      }
     };
     document.addEventListener('fullscreenchange', onFsChange);
     document.addEventListener('webkitfullscreenchange', onFsChange);
@@ -241,8 +305,12 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     document.addEventListener('MSFullscreenChange', onFsChange);
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
       if (e.key === 'Escape' && isFullscreen) {
         exitFullscreen();
+      } else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        toggleFullscreen();
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -254,7 +322,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       document.removeEventListener('MSFullscreenChange', onFsChange);
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [isFullscreen, exitFullscreen]);
+  }, [isFullscreen, exitFullscreen, toggleFullscreen, resetControlsTimer]);
 
   const lastSeekTimeRef = useRef<number>(0);
   const consecutiveDriftCountRef = useRef<number>(0);
@@ -578,6 +646,272 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const isPlaying = playbackState === 'playing';
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  const handleFullscreenTap = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button, input, a, [role="button"]')) {
+      resetControlsTimer();
+      return;
+    }
+    if (!showFullscreenControls) {
+      resetControlsTimer();
+    } else {
+      setShowFullscreenControls(false);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    }
+  };
+
+  const handleFullscreenDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (canControl && currentTrack) {
+      handleTogglePlay();
+    }
+  };
+
+  const renderYouTubeHUD = () => (
+    <div
+      className="absolute inset-0 z-30 flex flex-col justify-between overflow-hidden"
+      onClick={handleFullscreenTap}
+      onDoubleClick={handleFullscreenDoubleClick}
+    >
+      {/* Dynamic blurred glow if in Song mode */}
+      {viewMode === 'song' && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none bg-black/85">
+          {currentTrack?.thumbnail && (
+            <img
+              src={currentTrack.thumbnail}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover scale-150 blur-3xl opacity-20"
+            />
+          )}
+          <div className="relative w-56 h-56 sm:w-72 sm:h-72 aspect-square rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_50px_rgba(139,92,246,0.3)] border border-white/15 mb-4">
+            {currentTrack?.thumbnail ? (
+              <img src={currentTrack.thumbnail} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <JamFlowAlbumArt size="default" />
+            )}
+          </div>
+          <p className="text-white text-base sm:text-lg font-bold tracking-tight px-4 text-center truncate max-w-md">
+            {currentTrack?.title ?? 'JamFlow'}
+          </p>
+          <p className="text-zinc-400 text-xs sm:text-sm text-center truncate max-w-sm mt-0.5">
+            {currentTrack?.author ?? ''}
+          </p>
+          <div className="mt-3">
+            <SoundVisualizer isPlaying={isPlaying} />
+          </div>
+        </div>
+      )}
+
+      {/* Auto-hiding HUD controls (fades out after 3s when playing) */}
+      <div
+        className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-300 pointer-events-none ${
+          showFullscreenControls ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        {/* Top Bar */}
+        <div className="pointer-events-auto bg-gradient-to-b from-black/85 via-black/40 to-transparent pt-3 pb-8 px-4 sm:px-6 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0 flex-1 mr-3">
+            <button
+              onClick={(e) => { e.stopPropagation(); exitFullscreen(); }}
+              className="p-2 -ml-2 rounded-full text-white/90 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+              title="Exit Fullscreen (Esc)"
+            >
+              <Minimize className="w-5 h-5" />
+            </button>
+            <div className="min-w-0">
+              <p className="text-white text-sm sm:text-base font-bold truncate leading-tight drop-shadow">
+                {currentTrack?.title ?? 'JamFlow'}
+              </p>
+              <p className="text-zinc-300 text-xs truncate mt-0.5 drop-shadow">
+                {currentTrack?.author ?? ''}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {isLiveTrack ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-mono font-bold shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+                </span>
+                <span>LIVE RADIO</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-white/15 text-zinc-300 text-xs font-mono">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span>SYNCED</span>
+              </div>
+            )}
+
+            <button
+              onClick={(e) => { e.stopPropagation(); exitFullscreen(); }}
+              className="p-2 rounded-full text-white/90 hover:text-white hover:bg-white/10 transition-colors"
+              title="Exit Fullscreen (Esc)"
+            >
+              <Minimize className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Center Controls */}
+        <div className="pointer-events-auto flex items-center justify-center gap-6 sm:gap-10 my-auto">
+          {/* Resync Button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); handleResync(); }}
+            title="Resync with room"
+            className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/50 hover:bg-black/75 border border-white/15 text-white/80 hover:text-white flex items-center justify-center transition-all backdrop-blur-md active:scale-95 shadow-lg"
+          >
+            <RotateCcw className={`w-5 h-5 ${isSyncing ? 'animate-spin text-[#D946EF]' : ''}`} />
+          </button>
+
+          {/* Main Big Play / Pause Button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); handleTogglePlay(); }}
+            disabled={!canControl || !currentTrack}
+            className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center transition-all backdrop-blur-md shadow-2xl ${
+              !canControl || !currentTrack
+                ? 'bg-black/50 text-white/30 border border-white/10 cursor-not-allowed'
+                : 'bg-white/20 hover:bg-white/30 text-white border border-white/30 hover:scale-105 active:scale-95 shadow-[0_0_35px_rgba(139,92,246,0.5)]'
+            }`}
+            title={!canControl ? 'Only Host or DJ can control playback' : isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? (
+              <Pause className="w-8 h-8 sm:w-10 sm:h-10 fill-current" />
+            ) : (
+              <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-current ml-1" />
+            )}
+          </button>
+
+          {/* Skip Next Button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onSkipNext?.(); }}
+            disabled={!canControl || !hasQueue}
+            className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/50 hover:bg-black/75 border border-white/15 text-white/80 hover:text-white flex items-center justify-center transition-all backdrop-blur-md active:scale-95 disabled:opacity-25 disabled:cursor-not-allowed shadow-lg"
+            title={hasQueue ? "Next Track" : "Queue Empty"}
+          >
+            <FastForward className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="pointer-events-auto bg-gradient-to-t from-black/95 via-black/60 to-transparent px-4 sm:px-6 pt-10 pb-4 sm:pb-6 flex flex-col gap-2.5">
+          {/* Full-width Scrubber Bar */}
+          {isLiveTrack ? (
+            <div className="w-full flex items-center justify-between py-1 text-xs font-mono text-zinc-300">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+                </span>
+                <span className="text-rose-400 font-bold">24/7 LIVE STREAM</span>
+              </div>
+              <span className="text-zinc-400 text-[11px]">Synchronized Edge</span>
+            </div>
+          ) : (
+            <div className="relative w-full group py-1.5 cursor-pointer">
+              <div className="relative w-full h-1 group-hover:h-2 bg-white/20 rounded-full transition-all">
+                <div
+                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#D946EF] rounded-full transition-none shadow-[0_0_10px_rgba(139,92,246,0.9)]"
+                  style={{ width: `${progress}%` }}
+                />
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg scale-0 group-hover:scale-100 transition-transform pointer-events-none"
+                  style={{ left: `${progress}%` }}
+                />
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={duration || currentTrack?.duration || 100}
+                step={0.5}
+                value={currentTime}
+                onChange={handleSeek}
+                disabled={!canControl || !currentTrack}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+              />
+            </div>
+          )}
+
+          {/* Controls Row */}
+          <div className="flex items-center justify-between text-white">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleTogglePlay(); }}
+                disabled={!canControl || !currentTrack}
+                className="p-1.5 text-white/90 hover:text-white transition-colors"
+              >
+                {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+              </button>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); onSkipNext?.(); }}
+                disabled={!canControl || !hasQueue}
+                className="p-1.5 text-zinc-400 hover:text-white transition-colors disabled:opacity-20"
+              >
+                <FastForward className="w-4 h-4" />
+              </button>
+
+              {/* Volume */}
+              <div className="flex items-center gap-1.5 ml-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleToggleMute(); }}
+                  className="p-1.5 text-zinc-400 hover:text-white transition-colors"
+                >
+                  {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={isMuted ? 0 : volume}
+                  onChange={handleVolumeChange}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-16 sm:w-20 h-1 cursor-pointer accent-[#8B5CF6] hidden xs:block"
+                />
+              </div>
+
+              {/* Time Readout */}
+              <span className="text-xs font-mono text-zinc-300 ml-1">
+                {isLiveTrack ? 'LIVE' : `${formatTime(currentTime)} / ${formatTime(duration || currentTrack?.duration || 0)}`}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Audio / Video Switcher */}
+              <div className="flex items-center bg-white/10 backdrop-blur-md rounded-full p-0.5 border border-white/15">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleToggleViewMode('song'); }}
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                    viewMode === 'song' ? 'bg-[#8B5CF6] text-white shadow' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  AUDIO
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleToggleViewMode('video'); }}
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                    viewMode === 'video' ? 'bg-[#8B5CF6] text-white shadow' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  VIDEO
+                </button>
+              </div>
+
+              {/* Exit Fullscreen */}
+              <button
+                onClick={(e) => { e.stopPropagation(); exitFullscreen(); }}
+                className="p-2 text-white/90 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                title="Exit Fullscreen (Esc)"
+              >
+                <Minimize className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   // ─── Compact / Half-Screen Player (mobile) ──────────────────────────────────
   if (compact) {
     // When minimized on mobile (user expanded Queue or Chat to full height):
@@ -665,15 +999,9 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     return (
       <div
         ref={playerRootRef}
-        className={`select-none transition-all duration-300 ${
-          isFullscreen
-            ? 'fixed inset-0 z-[99999] w-screen h-screen bg-[#0A0B12] p-4 flex flex-col justify-between overflow-hidden'
-            : 'relative w-full bg-[#0C0D16]/90 backdrop-blur-xl border-b border-white/[0.08] p-3 sm:p-4 overflow-hidden shrink-0'
-        }`}
+        className="relative w-full bg-[#0C0D16]/90 backdrop-blur-xl border-b border-white/[0.08] p-3 sm:p-4 overflow-hidden shrink-0 select-none"
         style={{
-          background: isFullscreen
-            ? '#0A0B12'
-            : 'radial-gradient(circle at 50% 25%, rgba(139, 92, 246, 0.12), transparent 60%), #0C0D15',
+          background: 'radial-gradient(circle at 50% 25%, rgba(139, 92, 246, 0.12), transparent 60%), #0C0D15',
         }}
       >
         {/* Dynamic blurred background */}
@@ -708,96 +1036,8 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           </div>
         )}
 
-        {/* Fullscreen Mobile View */}
-        {isFullscreen && (
-          <>
-            {/* Top row in fullscreen */}
-            <div className="relative z-20 flex items-center justify-between w-full pt-1 pb-2">
-              <div className="min-w-0 flex-1 mr-2">
-                <p className="text-white text-xs font-bold truncate">
-                  {currentTrack?.title ?? 'Nothing Playing'}
-                </p>
-                <p className="text-zinc-400 text-[11px] truncate">
-                  {currentTrack?.author ?? ''}
-                </p>
-              </div>
-              <button
-                onClick={exitFullscreen}
-                className="flex items-center gap-1 px-3 py-1 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all border border-white/15 text-xs font-semibold backdrop-blur-md"
-                title="Exit Fullscreen"
-              >
-                <Minimize className="w-3.5 h-3.5" />
-                <span>Exit</span>
-              </button>
-            </div>
-
-            {/* Middle showcase in fullscreen */}
-            <div className="relative z-10 flex-1 flex items-center justify-center my-auto w-full">
-              {viewMode === 'video' ? (
-                <div className="w-full max-w-2xl aspect-video rounded-2xl overflow-hidden shadow-2xl border border-[#242429] bg-black relative">
-                  <div id="jamflow-yt-hidden" className="w-full h-full" />
-                </div>
-              ) : (
-                <div className="w-52 h-52 xs:w-64 xs:h-64 aspect-square rounded-2xl overflow-hidden border border-[#242429] bg-[#111114] shadow-2xl relative">
-                  {currentTrack?.thumbnail ? (
-                    <img src={currentTrack.thumbnail} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <JamFlowAlbumArt size="default" />
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Bottom controls in fullscreen */}
-            <div className="relative z-10 flex flex-col w-full max-w-lg mx-auto gap-3 pb-2 shrink-0">
-              {/* Progress bar */}
-              <div className="space-y-1">
-                <div className="relative w-full h-1.5 bg-white/20 rounded-full">
-                  <div className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] rounded-full" style={{ width: `${progress}%` }} />
-                  <input
-                    type="range" min={0} max={duration || currentTrack?.duration || 100} step={0.5}
-                    value={currentTime} onChange={handleSeek}
-                    disabled={!canControl || !currentTrack}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] font-mono text-zinc-400">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration || currentTrack?.duration || 0)}</span>
-                </div>
-              </div>
-
-              {/* Controls Row */}
-              <div className="flex items-center justify-between pt-1">
-                <button onClick={handleToggleMute} className="text-zinc-400 hover:text-white p-2">
-                  {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </button>
-                <div className="flex items-center gap-4">
-                  <button onClick={handleResync} title="Resync" className="p-2 text-zinc-400 hover:text-white rounded-full">
-                    <RotateCcw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                  </button>
-                  <button
-                    onClick={handleTogglePlay}
-                    disabled={!canControl || !currentTrack}
-                    className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] text-white active:scale-95 transition-all"
-                  >
-                    {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
-                  </button>
-                  <button onClick={onSkipNext} disabled={!canControl || !hasQueue} className="p-2 text-zinc-400 hover:text-white disabled:opacity-20">
-                    <FastForward className="w-4 h-4" />
-                  </button>
-                </div>
-                <button onClick={exitFullscreen} className="p-2 text-zinc-400 hover:text-white rounded-lg">
-                  <Minimize className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Regular Non-Fullscreen Mobile Player */}
-        {!isFullscreen && (
-          <div className="relative z-10 flex flex-col items-center w-full pt-2 pb-1 px-3">
+        {/* Regular Mobile Player Content */}
+        <div className="relative z-10 flex flex-col items-center w-full pt-2 pb-1 px-3">
             {/* Subtle ambient glow for mobile (pure CSS, zero repaint lag) */}
             {viewMode === 'song' && (
               <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-40">
@@ -838,28 +1078,39 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
             {/* Visual Canvas Frame (Audio & Video take the EXACT SAME 16:9 space) */}
             <div className="relative w-full max-w-sm aspect-video mx-auto my-1 flex items-center justify-center">
-              {/* Video Layer — always mounted in DOM */}
+              {/* Video Layer — always mounted in DOM, transforms to Fullscreen HUD when isFullscreen is true */}
               <div
-                className={`absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black transition-opacity duration-300 ${
-                  viewMode === 'video'
-                    ? 'opacity-100 pointer-events-auto z-20'
-                    : 'opacity-0 pointer-events-none -z-10'
-                }`}
+                ref={videoContainerRef}
+                className={
+                  isFullscreen
+                    ? 'fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] bg-black flex items-center justify-center select-none overflow-hidden rounded-none border-none'
+                    : `absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black transition-opacity duration-300 ${
+                        viewMode === 'video'
+                          ? 'opacity-100 pointer-events-auto z-20'
+                          : 'opacity-0 pointer-events-none -z-10'
+                      }`
+                }
+                onMouseMove={isFullscreen ? resetControlsTimer : undefined}
+                onTouchStart={isFullscreen ? resetControlsTimer : undefined}
               >
-                <div id="jamflow-yt-hidden" className="w-full h-full" />
-                {viewMode === 'video' && (
+                <div
+                  id="jamflow-yt-hidden"
+                  className={isFullscreen ? 'w-full h-full max-w-full max-h-full object-contain aspect-video' : 'w-full h-full'}
+                />
+                {!isFullscreen && viewMode === 'video' && (
                   <button
-                    onClick={toggleFullscreen}
+                    onClick={enterFullscreen}
                     className="absolute top-2 right-2 z-30 p-1.5 text-white/80 hover:text-white bg-black/60 backdrop-blur-md border border-white/10 rounded-xl transition-all shadow"
                     title="Fullscreen"
                   >
                     <Maximize className="w-3.5 h-3.5" />
                   </button>
                 )}
+                {isFullscreen && renderYouTubeHUD()}
               </div>
 
               {/* In Song Mode: Present Album Artwork Card or JamFlow Album Art */}
-              {viewMode === 'song' && (
+              {!isFullscreen && viewMode === 'song' && (
                 <div className="relative z-10 w-full h-full flex items-center justify-center p-1">
                   {currentTrack ? (
                     <div
@@ -1007,7 +1258,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               </div>
 
               <button
-                onClick={toggleFullscreen}
+                onClick={enterFullscreen}
                 className="w-10 h-10 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shadow-sm"
                 title="Fullscreen"
               >
@@ -1015,7 +1266,6 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               </button>
             </div>
           </div>
-        )}
 
         <style jsx>{`
           @keyframes equalizerBar {
@@ -1045,31 +1295,8 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   return (
     <div
       ref={playerRootRef}
-      className={`select-none transition-all duration-300 ${
-        isFullscreen
-          ? 'fixed inset-0 z-[99999] w-screen h-screen bg-[#0A0B12] p-6 md:p-8 flex flex-col justify-between overflow-hidden'
-          : 'relative w-full h-full flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden py-6 px-6 lg:px-10'
-      }`}
+      className="relative w-full h-full flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden py-6 px-6 lg:px-10 select-none"
     >
-      {/* Fullscreen needs its own blurred art since page backdrop doesn't apply */}
-      {isFullscreen && (
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          {currentTrack?.thumbnail ? (
-            <img
-              src={currentTrack.thumbnail}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover scale-150 blur-3xl opacity-20"
-            />
-          ) : (
-            <div
-              className="absolute inset-0 w-full h-full scale-125 blur-3xl opacity-25 pointer-events-none"
-              style={{
-                background: 'radial-gradient(ellipse at 50% 35%, rgba(139, 92, 246, 0.35) 0%, rgba(217, 70, 239, 0.18) 45%, transparent 70%)',
-              }}
-            />
-          )}
-        </div>
-      )}
 
       {/* Autoplay gesture overlay */}
       {needsGesture && (
@@ -1112,26 +1339,37 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       <div className="relative z-10 flex items-center justify-center shrink-0">
         {/* Video Player Layer — always mounted */}
         <div
-          className={`rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black transition-all duration-300 ${
-            viewMode === 'video'
-              ? 'w-full max-w-2xl aspect-video relative opacity-100 pointer-events-auto'
-              : 'w-0 h-0 opacity-0 pointer-events-none absolute'
-          }`}
+          ref={videoContainerRef}
+          className={
+            isFullscreen
+              ? 'fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] bg-black flex items-center justify-center select-none overflow-hidden rounded-none border-none'
+              : `rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black transition-all duration-300 ${
+                  viewMode === 'video'
+                    ? 'w-full max-w-2xl aspect-video relative opacity-100 pointer-events-auto'
+                    : 'w-0 h-0 opacity-0 pointer-events-none absolute'
+                }`
+          }
+          onMouseMove={isFullscreen ? resetControlsTimer : undefined}
+          onTouchStart={isFullscreen ? resetControlsTimer : undefined}
         >
-          <div id="jamflow-yt-hidden" className="w-full h-full" />
-          {viewMode === 'video' && (
+          <div
+            id="jamflow-yt-hidden"
+            className={isFullscreen ? 'w-full h-full max-w-full max-h-full object-contain aspect-video' : 'w-full h-full'}
+          />
+          {!isFullscreen && viewMode === 'video' && (
             <button
-              onClick={toggleFullscreen}
+              onClick={enterFullscreen}
               className="absolute top-3 right-3 z-30 p-2 text-white/80 hover:text-white bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/10 rounded-lg transition-all shadow-lg"
-              title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+              title="Fullscreen"
             >
-              {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+              <Maximize className="w-4 h-4" />
             </button>
           )}
+          {isFullscreen && renderYouTubeHUD()}
         </div>
 
         {/* Album Art Layer (Song Mode) */}
-        {viewMode === 'song' && (
+        {!isFullscreen && viewMode === 'song' && (
           <div
             className="relative w-[260px] h-[260px] sm:w-[300px] sm:h-[300px] lg:w-[340px] lg:h-[340px] aspect-square rounded-3xl overflow-hidden border border-white/15 bg-[#121320] shadow-2xl transition-all duration-300"
             style={{
