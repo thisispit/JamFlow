@@ -8,7 +8,7 @@ export function extractYouTubeId(urlOrId: string): string | null {
   }
 
   // Regex for various YouTube URL forms
-  const regExp = /(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|attribution_link\?.*v%3D)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+  const regExp = /(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:music\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/|attribution_link\?.*v%3D)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
   const match = trimmed.match(regExp);
   return match ? match[1] : null;
 }
