@@ -22,6 +22,7 @@ export interface Track {
     username: string;
   };
   addedAt: number;
+  isLive?: boolean;
 }
 
 export interface RoomSettings {

@@ -11,9 +11,10 @@ interface YouTubeInputProps {
 }
 
 const QUICK_CATEGORIES = [
-  { label: 'Lo-fi', url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
   { label: 'Synthwave', url: 'https://www.youtube.com/watch?v=4xDzrJKXOOY' },
   { label: 'Chillhop', url: 'https://www.youtube.com/watch?v=5yx6BWlEVcY' },
+  { label: 'Lo-fi', url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
+  { label: 'Coffee Shop', url: 'https://www.youtube.com/watch?v=lP26UCnoH9s' },
 ];
 
 export const YouTubeInput: React.FC<YouTubeInputProps> = ({

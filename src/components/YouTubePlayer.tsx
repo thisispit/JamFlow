@@ -259,9 +259,19 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const lastSeekTimeRef = useRef<number>(0);
   const consecutiveDriftCountRef = useRef<number>(0);
   const isBufferingRef = useRef<boolean>(false);
+  const isLiveRef = useRef<boolean>(false);
+
+  const isLiveTrack = Boolean(
+    currentTrack?.isLive ||
+    currentTrack?.duration === 0 ||
+    ['jfKfPfyJRdk', '4xDzrJKXOOY', '5yx6BWlEVcY', 'lP26UCnoH9s', 'Dx5qFachd3A', '5qap5aO4i9A'].includes(currentTrack?.videoId || '') ||
+    /radio|live stream|24\/7|live broadcast/i.test(currentTrack?.title || '') ||
+    isLiveRef.current
+  );
 
   const doSeek = (targetSeconds: number, isDriftCorrection = false) => {
     if (!playerRef.current || !isPlayerReadyRef.current) return;
+    if (isLiveTrack) return; // EXEMPT: Never seek live radio streams!
     lastSeekTimeRef.current = Date.now();
     consecutiveDriftCountRef.current = 0;
     if (isDriftCorrection) {
@@ -272,9 +282,10 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   };
 
   const getExpectedServerPosition = useCallback(() => {
+    if (isLiveTrack) return 0;
     if (playbackState !== 'playing') return serverPosition;
     return serverPosition + (Date.now() - lastSyncTimestamp) / 1000;
-  }, [playbackState, serverPosition, lastSyncTimestamp]);
+  }, [playbackState, serverPosition, lastSyncTimestamp, isLiveTrack]);
 
   // Load YT API script
   useEffect(() => {
@@ -370,22 +381,43 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     const loadedId = playerRef.current.getVideoData?.()?.video_id;
     if (loadedId !== currentTrack.videoId) {
       setInternalAction();
-      playerRef.current.loadVideoById({ videoId: currentTrack.videoId, startSeconds: getExpectedServerPosition() });
+      isLiveRef.current = false;
+      if (isLiveTrack) {
+        // EXEMPT: Connect straight to live broadcast without startSeconds
+        playerRef.current.loadVideoById({ videoId: currentTrack.videoId });
+      } else {
+        playerRef.current.loadVideoById({ videoId: currentTrack.videoId, startSeconds: getExpectedServerPosition() });
+      }
       if (playbackState === 'playing') playerRef.current.playVideo();
       else playerRef.current.pauseVideo();
     }
-  }, [currentTrack?.videoId]);
+  }, [currentTrack?.videoId, isLiveTrack]);
 
   // Server sync
   useEffect(() => {
     if (!playerRef.current || !isPlayerReadyRef.current || isInternalActionRef.current) return;
     try {
       const p = playerRef.current;
+      const S = window.YT.PlayerState;
+      const s = p.getPlayerState?.() ?? -1;
+
+      // EXEMPT LIVE RADIO: Only synchronize play / pause state, NEVER call doSeek or drift correction!
+      if (isLiveTrack) {
+        if (playbackState === 'playing') {
+          if (s !== S.PLAYING && s !== S.BUFFERING) {
+            p.playVideo?.();
+          }
+        } else if (playbackState === 'paused') {
+          if (s === S.PLAYING) {
+            p.pauseVideo?.();
+          }
+        }
+        return;
+      }
+
       const expected = getExpectedServerPosition();
       const local = p.getCurrentTime?.() ?? 0;
       const drift = Math.abs(local - expected);
-      const S = window.YT.PlayerState;
-      const s = p.getPlayerState?.() ?? -1;
 
       if (playbackState === 'playing') {
         if (s !== S.PLAYING && s !== S.BUFFERING) {
@@ -403,7 +435,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         }
       }
     } catch {}
-  }, [playbackState, serverPosition, lastSyncTimestamp]);
+  }, [playbackState, serverPosition, lastSyncTimestamp, isLiveTrack]);
 
   // Progress + drift correction timer with smooth playbackRate adjustment
   useEffect(() => {
@@ -415,11 +447,21 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         const playerState = p.getPlayerState?.() ?? -1;
         const isBuffering = playerState === S.BUFFERING || isBufferingRef.current;
 
+        const videoData = p.getVideoData?.();
+        if (videoData?.isLive) {
+          isLiveRef.current = true;
+        }
+
         const cur = p.getCurrentTime?.() ?? 0;
         const dur = p.getDuration?.() ?? 0;
         setCurrentTime(cur);
         if (dur > 0) {
           setDuration(prev => (prev !== dur ? dur : prev));
+        }
+
+        // EXEMPT LIVE RADIO: Never seek or alter playbackRate on live streams
+        if (isLiveTrack || videoData?.isLive) {
+          return;
         }
 
         // Only evaluate drift if actively playing and NOT currently buffering
@@ -469,7 +511,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       } catch {}
     }, 500);
     return () => clearInterval(t);
-  }, [playbackState, getExpectedServerPosition]);
+  }, [playbackState, getExpectedServerPosition, isLiveTrack]);
 
   const handleTogglePlay = () => {
     if (!canControl || !currentTrack || !playerRef.current || !isPlayerReadyRef.current) return;
@@ -486,7 +528,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!canControl || !currentTrack || !playerRef.current || !isPlayerReadyRef.current) return;
+    if (!canControl || !currentTrack || !playerRef.current || !isPlayerReadyRef.current || isLiveTrack) return;
     const v = parseFloat(e.target.value);
     setInternalAction();
     setCurrentTime(v);
@@ -510,6 +552,13 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
   const handleResync = () => {
     if (!playerRef.current || !isPlayerReadyRef.current) return;
+    setIsSyncing(true);
+    setTimeout(() => setIsSyncing(false), 800);
+    if (isLiveTrack) {
+      playerRef.current.seekTo?.(999999, true);
+      if (playbackState === 'playing') playerRef.current.playVideo?.();
+      return;
+    }
     doSeek(getExpectedServerPosition(), true);
     if (playbackState === 'playing') playerRef.current.playVideo?.();
   };
@@ -520,7 +569,9 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     if (!playerRef.current || !isPlayerReadyRef.current) return;
     playerRef.current.unMute?.();
     setIsMuted(false);
-    doSeek(getExpectedServerPosition(), false);
+    if (!isLiveTrack) {
+      doSeek(getExpectedServerPosition(), false);
+    }
     playerRef.current.playVideo?.();
   };
 
@@ -846,29 +897,46 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               </p>
             </div>
 
-            {/* Scrubber Bar */}
-            <div className="relative z-10 w-full max-w-xs mt-2.5 space-y-1">
-              <div className="relative w-full h-2 bg-white/[0.12] hover:bg-white/[0.18] rounded-full cursor-pointer transition-colors group">
-                <div
-                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#D946EF] rounded-full shadow-[0_0_12px_rgba(139,92,246,0.9)]"
-                  style={{ width: `${progress}%` }}
-                />
-                <input
-                  type="range"
-                  min={0}
-                  max={duration || currentTrack?.duration || 100}
-                  step={0.5}
-                  value={currentTime}
-                  onChange={handleSeek}
-                  disabled={!canControl || !currentTrack}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                />
+            {/* Scrubber Bar or Live Radio Indicator */}
+            {isLiveTrack ? (
+              <div className="relative z-10 w-full max-w-xs mt-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.07] flex items-center justify-between select-none">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.9)]" />
+                  </span>
+                  <span className="text-[11px] font-mono font-bold tracking-wider text-rose-400">
+                    LIVE RADIO
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-zinc-400 bg-white/[0.04] px-2 py-0.5 rounded-full border border-white/[0.06]">
+                  24/7 Stream
+                </span>
               </div>
-              <div className="flex justify-between items-center text-[11px] font-mono font-medium text-zinc-400 px-0.5">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration || currentTrack?.duration || 0)}</span>
+            ) : (
+              <div className="relative z-10 w-full max-w-xs mt-2.5 space-y-1">
+                <div className="relative w-full h-2 bg-white/[0.12] hover:bg-white/[0.18] rounded-full cursor-pointer transition-colors group">
+                  <div
+                    className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#D946EF] rounded-full shadow-[0_0_12px_rgba(139,92,246,0.9)]"
+                    style={{ width: `${progress}%` }}
+                  />
+                  <input
+                    type="range"
+                    min={0}
+                    max={duration || currentTrack?.duration || 100}
+                    step={0.5}
+                    value={currentTime}
+                    onChange={handleSeek}
+                    disabled={!canControl || !currentTrack}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[11px] font-mono font-medium text-zinc-400 px-0.5">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration || currentTrack?.duration || 0)}</span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Controls Row with Merged Sync/Synced Button */}
             <div className="relative z-10 w-full max-w-xs flex items-center justify-between px-1 mt-2 pb-1">
@@ -1102,28 +1170,47 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         </div>
       </div>
 
-      {/* Scrubber / Progress Bar */}
+      {/* Scrubber / Progress Bar or Live Stream Badge */}
       <div className="relative z-10 w-full max-w-md mt-3 space-y-1 shrink-0">
-        <div className="relative w-full h-1.5 bg-[#242429] hover:h-2 rounded-full transition-all cursor-pointer">
-          <div
-            className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] rounded-full transition-none shadow-[0_0_8px_rgba(139,92,246,0.6)]"
-            style={{ width: `${progress}%` }}
-          />
-          <input
-            type="range"
-            min={0}
-            max={duration || currentTrack?.duration || 100}
-            step={0.5}
-            value={currentTime}
-            onChange={handleSeek}
-            disabled={!canControl || !currentTrack}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-          />
-        </div>
-        <div className="flex justify-between text-[11px] font-mono text-zinc-400 px-0.5">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration || currentTrack?.duration || 0)}</span>
-        </div>
+        {isLiveTrack ? (
+          <div className="w-full flex items-center justify-between py-2 px-3.5 rounded-xl bg-white/[0.04] border border-white/[0.07] select-none">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.9)]" />
+              </span>
+              <span className="text-xs font-mono font-bold tracking-wider text-rose-400">
+                LIVE RADIO STREAM
+              </span>
+            </div>
+            <span className="text-xs font-mono text-zinc-400 bg-white/[0.04] px-2.5 py-0.5 rounded-full border border-white/[0.06]">
+              24/7 Continuous Broadcast
+            </span>
+          </div>
+        ) : (
+          <>
+            <div className="relative w-full h-1.5 bg-[#242429] hover:h-2 rounded-full transition-all cursor-pointer">
+              <div
+                className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] rounded-full transition-none shadow-[0_0_8px_rgba(139,92,246,0.6)]"
+                style={{ width: `${progress}%` }}
+              />
+              <input
+                type="range"
+                min={0}
+                max={duration || currentTrack?.duration || 100}
+                step={0.5}
+                value={currentTime}
+                onChange={handleSeek}
+                disabled={!canControl || !currentTrack}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+              />
+            </div>
+            <div className="flex justify-between text-[11px] font-mono text-zinc-400 px-0.5">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration || currentTrack?.duration || 0)}</span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Controls Row — 3 equal columns so play/pause is always dead-center */}

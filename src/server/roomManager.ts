@@ -240,14 +240,19 @@ export class RoomManager {
     const metadata = await fetchYouTubeMetadata(urlOrId);
     if (!metadata) return null;
 
+    const isLive = metadata.duration === 0 ||
+      /radio|live stream|24\/7|live broadcast/i.test(metadata.title) ||
+      ['jfKfPfyJRdk', '4xDzrJKXOOY', '5yx6BWlEVcY', 'lP26UCnoH9s', 'Dx5qFachd3A', '5qap5aO4i9A'].includes(metadata.videoId);
+
     const track: Track = {
       id: `track-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       videoId: metadata.videoId,
       url: metadata.url,
       title: metadata.title,
       author: metadata.author,
-      duration: metadata.duration,
+      duration: isLive ? 0 : metadata.duration,
       thumbnail: metadata.thumbnail,
+      isLive,
       addedBy: {
         id: user.id,
         username: user.username,
