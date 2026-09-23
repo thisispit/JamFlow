@@ -1,0 +1,1 @@
+const regex = /(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|attribution_link\?.*v%3D)|youtu\.be\/)([a-zA-Z0-9_-]{11})/; console.log(regex.exec('https://youtube.com/watch?v=dQw4w9WgXcQ')); console.log(regex.exec('https://www.youtube.com/watch?v=dQw4w9WgXcQ'));

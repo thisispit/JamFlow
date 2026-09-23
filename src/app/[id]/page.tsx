@@ -3,15 +3,16 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  Radio, Share2, Check, LogOut, Users, Crown, Copy,
-  AlertCircle, ListMusic, MessageSquare, MessageCircle, Send, Smartphone, X,
-  Settings, Shield, Sparkles, Maximize2, Minimize2, ChevronDown, ChevronUp,
+  Radio, Share2, Check, LogOut, Crown, Copy,
+  AlertCircle, ListMusic, MessageSquare, MessageCircle, Send,
+  Settings, X, Users, ChevronDown,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 import { getSocket } from '@/lib/socket';
 import { Room, User, Track, Reaction, PlaybackState, RoomSettings } from '@/types';
 import { YouTubePlayer } from '@/components/YouTubePlayer';
+import { YouTubeInput } from '@/components/YouTubeInput';
 import { QueueList } from '@/components/QueueList';
 import { ChatAndReactions } from '@/components/ChatAndReactions';
 import { FloatingReactions } from '@/components/FloatingReactions';
@@ -29,7 +30,7 @@ export default function RoomPage() {
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [copiedField, setCopiedField] = useState<'link' | 'code' | null>(null);
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [isListeningNowOpen, setIsListeningNowOpen] = useState(false);
+  const [isListenersOpen, setIsListenersOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isAndroid, setIsAndroid] = useState(false);
@@ -37,21 +38,16 @@ export default function RoomPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Mobile bottom panel tab: 'queue' | 'chat'
-  const [mobileTab, setMobileTab] = useState<'queue' | 'chat'>('queue');
-  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
-  // Desktop right sidebar tab
-  const [desktopTab, setDesktopTab] = useState<'queue' | 'chat'>('queue');
+  // Tab: 'queue' | 'chat'
+  const [activeTab, setActiveTab] = useState<'queue' | 'chat'>('queue');
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const activeTabRef = useRef<'queue' | 'chat'>('queue');
+  const addTrackInputRef = useRef<HTMLInputElement>(null);
 
   const switchTab = (tab: 'queue' | 'chat') => {
-    setMobileTab(tab);
-    setDesktopTab(tab);
+    setActiveTab(tab);
     activeTabRef.current = tab;
-    if (tab === 'chat') {
-      setUnreadChatCount(0);
-    }
+    if (tab === 'chat') setUnreadChatCount(0);
   };
 
   const [playbackState, setPlaybackState] = useState<PlaybackState>('paused');
@@ -152,9 +148,7 @@ export default function RoomPage() {
         if (!p || p.chat.some(m => m.id === msg.id)) return p;
         return { ...p, chat: [...p.chat.slice(-99), msg] };
       });
-      if (activeTabRef.current !== 'chat' && !msg.isSystem) {
-        setUnreadChatCount(c => c + 1);
-      }
+      if (activeTabRef.current !== 'chat' && !msg.isSystem) setUnreadChatCount(c => c + 1);
       if (msg.isSystem && msg.content.includes('Vote to skip passed')) {
         try { confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } }); } catch {}
       }
@@ -214,73 +208,44 @@ export default function RoomPage() {
   const handleTransferHost = (id: string) => s().emit('room:transfer_host', { targetUserId: id });
   const handleToggleDJ = (id: string) => s().emit('room:toggle_dj', { targetUserId: id });
   const handleUpdateSettings = (settings: Partial<RoomSettings>) => s().emit('room:update_settings', settings);
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
+
+  const showToast = (msg: string) => { setToastMessage(msg); setTimeout(() => setToastMessage(null), 3000); };
 
   const copyToClipboard = async (text: string, field: 'link' | 'code') => {
     try {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
       } else {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-9999px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
       }
       setCopiedField(field);
-      showToast(field === 'link' ? 'Invite link copied to clipboard!' : 'Room code copied to clipboard!');
+      showToast(field === 'link' ? 'Invite link copied!' : 'Room code copied!');
       setTimeout(() => setCopiedField(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy to clipboard', err);
-      showToast('Failed to copy. Please copy manually.');
-    }
+    } catch { showToast('Failed to copy. Please copy manually.'); }
   };
 
   const getShareUrl = (code?: string) => {
     const id = code || room?.id || roomId || '';
     if (typeof window !== 'undefined') {
       const host = window.location.host;
-      if (host.includes('localhost') || host.includes('127.0.0.1')) {
-        return `${window.location.protocol}//${host}/${id}`;
-      }
-      if (host.includes('jamflow.world')) {
-        return `${window.location.origin}/${id}`;
-      }
+      if (host.includes('localhost') || host.includes('127.0.0.1')) return `${window.location.protocol}//${host}/${id}`;
+      if (host.includes('jamflow.world')) return `${window.location.origin}/${id}`;
     }
     return `https://jamflow.world/${id}`;
   };
 
   const handleShareToggle = async () => {
     if (!room) return;
-    const shareUrl = getShareUrl(room.id);
-    const shareData = {
-      title: `JamFlow — ${room.name || room.id}`,
-      text: `Listen to music in sync with me on JamFlow! Room Code: ${room.id}`,
-      url: shareUrl,
-    };
-
-    // On Android (or mobile OS supporting native share), trigger native Android share directly:
     if (isAndroid && hasNativeShare) {
       try {
-        await navigator.share(shareData);
-        showToast('Room shared successfully!');
+        await navigator.share({ title: `JamFlow — ${room.name || room.id}`, text: `Join my JamFlow room! Code: ${room.id}`, url: getShareUrl(room.id) });
+        showToast('Room shared!');
         return;
-      } catch (err: any) {
-        if (err?.name === 'AbortError') {
-          return; // User cancelled Android share sheet
-        }
-        console.warn('Android native share failed, falling back to share modal', err);
-      }
+      } catch (err: any) { if (err?.name === 'AbortError') return; }
     }
-
-    // On desktop or as fallback: toggle the share modal/popover
     setIsShareOpen(prev => !prev);
   };
 
@@ -296,6 +261,7 @@ export default function RoomPage() {
     onAddTrack: handleAddTrack, onRemoveTrack: handleRemoveTrack,
     onReorder: handleReorder, onSkipTo: handleSkipTo,
     onClearQueue: handleClearQueue, onVoteSkip: handleVoteSkip,
+    userCount: room?.users.length ?? 1,
   };
 
   const chatProps = {
@@ -304,11 +270,11 @@ export default function RoomPage() {
     currentUser,
     onSendMessage: handleSendMessage,
     onSendReaction: handleSendReaction,
-    onOpenListeners: () => setIsListeningNowOpen(true),
+    onOpenListeners: () => setIsListenersOpen(true),
     onOpenSettings: () => setIsSettingsOpen(true),
   };
 
-  // — Username prompt —
+  // ── Username prompt ──
   if (!hasPromptedUser) {
     return (
       <main className="min-h-screen bg-zinc-950 flex items-center justify-center p-5">
@@ -318,19 +284,13 @@ export default function RoomPage() {
           </div>
           <h2 className="text-lg font-bold text-white mb-1">Join {roomId}</h2>
           <p className="text-zinc-400 text-sm mb-5">Choose a nickname to start listening</p>
-          <form
-            onSubmit={e => { e.preventDefault(); if (username.trim()) { setHasPromptedUser(true); joinRoomWithUser(username.trim()); } }}
-            className="space-y-3"
-          >
+          <form onSubmit={e => { e.preventDefault(); if (username.trim()) { setHasPromptedUser(true); joinRoomWithUser(username.trim()); } }} className="space-y-3">
             <input
               type="text" placeholder="Your anime name" autoFocus required
               value={username} onChange={e => setUsername(e.target.value)}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-white/30"
             />
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#D946EF] text-white font-semibold text-sm border border-[#C084FC]/30 shadow-lg shadow-[#8B5CF6]/25 hover:opacity-95 transition-all active:scale-[0.98]"
-            >
+            <button type="submit" className="w-full py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#D946EF] text-white font-semibold text-sm shadow-lg shadow-[#8B5CF6]/25 hover:opacity-95 transition-all active:scale-[0.98]">
               Enter Room
             </button>
           </form>
@@ -339,7 +299,7 @@ export default function RoomPage() {
     );
   }
 
-  // — Loading / Error —
+  // ── Loading / Error ──
   if (isLoading || !room) {
     return (
       <main className="min-h-screen bg-zinc-950 flex items-center justify-center p-6 text-center">
@@ -361,26 +321,16 @@ export default function RoomPage() {
 
   const host = room.users.find(u => u.isHost);
 
+  // ────────────────────────────────────────────────────────────────────────────
   return (
     <main className="relative h-[100dvh] bg-[#0A0B12] flex flex-col overflow-hidden text-zinc-100 selection:bg-[#8B5CF6]/30">
-      {/* ── Ambient Studio Atmosphere ── */}
+
+      {/* Ambient glow */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-        {/* Top violet-fuchsia aurora bloom */}
         <div
-          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] sm:w-[950px] h-[400px] rounded-full opacity-30 blur-[100px]"
-          style={{
-            background: 'radial-gradient(ellipse at center, rgba(139, 92, 246, 0.45) 0%, rgba(217, 70, 239, 0.2) 45%, transparent 70%)',
-          }}
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[380px] rounded-full opacity-25 blur-[120px]"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(139, 92, 246, 0.5) 0%, rgba(217, 70, 239, 0.18) 50%, transparent 70%)' }}
         />
-        {/* Subtle bottom-right indigo warm fill */}
-        <div
-          className="absolute -bottom-36 -right-20 w-[450px] h-[350px] rounded-full opacity-20 blur-[90px]"
-          style={{
-            background: 'radial-gradient(circle, rgba(139, 92, 246, 0.35) 0%, transparent 65%)',
-          }}
-        />
-        {/* Subtle micro dot texture */}
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] opacity-20" />
       </div>
 
       <FloatingReactions reactions={reactions} />
@@ -393,7 +343,7 @@ export default function RoomPage() {
         </div>
       )}
 
-      {/* Success / Action toast */}
+      {/* Success toast */}
       {toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-zinc-900/95 border border-[#8B5CF6]/40 text-white text-xs shadow-2xl backdrop-blur-md flex items-center gap-2 whitespace-nowrap pointer-events-none">
           <Check className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -401,197 +351,152 @@ export default function RoomPage() {
         </div>
       )}
 
-      {/* ── Top bar (Generous height, luxury translucent studio island) ── */}
-      <header className="shrink-0 h-20 sm:h-22 px-4 sm:px-8 flex items-center justify-between border-b border-[#8B5CF6]/15 bg-[#0a0b0f]/60 backdrop-blur-3xl backdrop-saturate-150 z-20 select-none shadow-[0_8px_32px_rgba(0,0,0,0.32)]">
-        {/* Left: Brand + Room Code Pill */}
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+      {/* ── Top bar ── */}
+      <header className="shrink-0 h-14 px-4 sm:px-6 flex items-center justify-between border-b border-white/[0.07] bg-[#0a0b0f]/70 backdrop-blur-2xl z-20 select-none">
+        {/* Left: Brand + Room code */}
+        <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => router.push('/')}
-            className="flex items-center gap-2.5 text-zinc-300 hover:text-white transition-all group shrink-0 active:scale-95"
+            className="flex items-center gap-2 text-zinc-300 hover:text-white transition-all group shrink-0 active:scale-95"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_18px_rgba(139,92,246,0.4)] p-[1px]">
-              <div className="w-full h-full bg-[#101116]/90 rounded-[15px] flex items-center justify-center backdrop-blur-sm">
-                <Radio className="w-4.5 h-4.5 text-white group-hover:scale-110 transition-transform" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] via-[#A855F7] to-[#D946EF] flex items-center justify-center shadow-[0_0_14px_rgba(139,92,246,0.4)] p-[1px]">
+              <div className="w-full h-full bg-[#101116]/90 rounded-[10px] flex items-center justify-center">
+                <Radio className="w-4 h-4 text-white" />
               </div>
             </div>
-            <span className="text-base sm:text-lg font-black tracking-tight text-white hidden xs:inline">
+            <span className="text-sm font-black tracking-tight text-white hidden xs:inline">
               Jam<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C084FC] to-[#F472B6]">Flow</span>
             </span>
           </button>
 
-          {/* Room Code · Room Name */}
-          <div className="flex items-center gap-2 text-xs min-w-0">
-            <button
-              onClick={() => copyToClipboard(room.id, 'code')}
-              className="flex items-center gap-1.5 font-mono font-bold text-zinc-200 hover:text-white transition-all bg-white/[0.05] hover:bg-white/[0.1] active:scale-95 px-3.5 py-2 rounded-xl border border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] shrink-0 text-xs sm:text-sm"
-              title="Click to copy room code"
-            >
-              <span className="tracking-[0.18em]">{room.id}</span>
-              {copiedField === 'code' ? (
-                <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              ) : (
-                <Copy className="w-3.5 h-3.5 text-zinc-400 hover:text-zinc-200 shrink-0" />
-              )}
-            </button>
-
-            {room.name && (
-              <div className="hidden sm:flex items-center gap-1.5 text-zinc-400 text-xs font-medium truncate max-w-[130px] md:max-w-[200px]" title={room.name}>
-                <span className="text-zinc-600 font-bold select-none">·</span>
-                <span className="truncate">{room.name}</span>
-              </div>
-            )}
-          </div>
+          {/* Room code */}
+          <button
+            onClick={() => copyToClipboard(room.id, 'code')}
+            className="flex items-center gap-1.5 font-mono font-bold text-zinc-300 hover:text-white text-xs bg-white/[0.05] hover:bg-white/[0.09] px-2.5 py-1.5 rounded-lg border border-white/[0.08] active:scale-95 transition-all"
+            title="Copy room code"
+          >
+            <span className="tracking-[0.15em]">{room.id}</span>
+            {copiedField === 'code' ? <Check className="w-3 h-3 text-emerald-400 shrink-0" /> : <Copy className="w-3 h-3 text-zinc-500 shrink-0" />}
+          </button>
         </div>
 
-        {/* Right: SYNCED · LIVE LISTENERS · HOST · SHARE · LEAVE */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* SYNCED badge */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#8B5CF6]/[0.08] border border-[#8B5CF6]/20 text-[10px] font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#D946EF] shadow-[0_0_8px_rgba(217,70,239,0.8)]" />
-            <span className="text-[#C084FC] font-semibold tracking-[0.16em]">IN SYNC</span>
-          </div>
-
-          {/* LIVE LISTENERS button */}
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {/* Desktop listener indicator */}
           <button
-            onClick={() => setIsListeningNowOpen(prev => !prev)}
-            className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] hover:border-white/20 active:scale-95 transition-all cursor-pointer shadow-sm"
-            title="Click to view listening participants"
+            onClick={() => setIsListenersOpen(true)}
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] transition-all text-xs font-semibold text-zinc-300 hover:text-white active:scale-95"
+            title="Click to view active listeners"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D946EF] opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D946EF]" />
             </span>
-            <Users className="w-3.5 h-3.5 text-zinc-400 sm:hidden" />
-            <span className="font-bold text-white text-xs whitespace-nowrap">
-              <span className="hidden sm:inline">LIVE </span>
-              {room.users.length}
-              <span className="hidden sm:inline"> LISTENING</span>
-            </span>
+            <span>{room.users.length} listening</span>
           </button>
 
-          {/* 👑 Host badge */}
-          {host && (
-            <div className="hidden md:flex items-center gap-1.5 text-xs text-zinc-300 bg-white/[0.05] px-3 py-1.5 rounded-xl border border-white/[0.08]">
-              <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="font-medium truncate max-w-[110px]">
-                {currentUser?.isHost ? `${currentUser.username} (Host)` : host.username}
-              </span>
-            </div>
-          )}
-
-          {/* Host Settings */}
-          {currentUser?.isHost && (
-            <button
-              onClick={() => setIsSettingsOpen(prev => !prev)}
-              className="p-2 sm:p-2.5 rounded-xl text-zinc-400 hover:text-white bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] active:scale-95 transition-all"
-              title="Room Settings"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Share button */}
+          {/* Share */}
           <button
             onClick={handleShareToggle}
-            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
               isShareOpen
-                ? 'bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] text-white shadow-lg shadow-[#8B5CF6]/30'
-                : 'text-zinc-200 hover:text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.09] shadow-sm'
+                ? 'bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] text-white shadow-md shadow-[#8B5CF6]/25'
+                : 'text-zinc-300 hover:text-white bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08]'
             }`}
-            title="Share Room"
           >
             <Share2 className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Share</span>
           </button>
 
-          {/* Leave room */}
+          {/* Settings (host only) */}
+          {currentUser?.isHost && (
+            <button
+              onClick={() => setIsSettingsOpen(prev => !prev)}
+              className="p-2 rounded-lg text-zinc-400 hover:text-white bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] active:scale-95 transition-all"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Leave */}
           <button
             onClick={handleLeaveRoom}
-            className="p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium text-rose-400/90 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm"
+            className="p-2 rounded-lg text-rose-400/80 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 active:scale-95 transition-all"
             title="Leave room"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden md:inline font-semibold">Leave</span>
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* ── LISTENING NOW Modal / Popover ── */}
-      {isListeningNowOpen && (
+      {/* ── Listeners Bottom Sheet ── */}
+      {isListenersOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
-          onClick={() => setIsListeningNowOpen(false)}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setIsListenersOpen(false)}
         >
           <div
-            className="relative w-full max-w-sm rounded-3xl bg-[#121320]/95 border border-white/[0.1] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
+            className="relative w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-[#121320]/97 border border-white/[0.09] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-3.5">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">Listeners ({room.users.length})</h3>
+                <span className="w-2 h-2 rounded-full bg-[#D946EF] animate-pulse shadow-[0_0_8px_rgba(217,70,239,0.8)]" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                  Active Listeners ({room.users.length})
+                </h3>
               </div>
               <button
-                onClick={() => setIsListeningNowOpen(false)}
+                onClick={() => setIsListenersOpen(false)}
                 className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
               >
-                <X className="w-3.5 h-3.5" />
+                <ChevronDown className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Participant list */}
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
               {room.users.map(u => {
                 const isMe = u.id === currentUser?.id;
                 return (
-                  <div key={u.id} className="flex items-center justify-between py-2 px-3 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
+                  <div key={u.id} className="flex items-center justify-between py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.06]">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center text-xs font-bold text-white uppercase shrink-0 shadow-sm">
-                        {u.username.slice(0, 1)}
-                      </div>
-                      <span className={`text-xs truncate ${isMe ? 'font-bold text-white' : 'text-zinc-300'}`}>
-                        {isMe ? `${u.username} (You)` : u.username}
+                      <span className="w-2 h-2 rounded-full bg-[#D946EF] shrink-0" />
+                      <span className={`text-sm truncate ${isMe ? 'font-bold text-white' : 'text-zinc-300'}`}>
+                        {u.username}{isMe ? ' (You)' : ''}
                       </span>
                     </div>
-
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
                       {u.isHost ? (
-                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-semibold text-amber-400 flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-[10px] font-mono font-semibold text-amber-400 flex items-center gap-1">
                           <Crown className="w-2.5 h-2.5" /> Host
                         </span>
                       ) : (
                         <>
-                          {/* If Host, allow toggling DJ or Transferring Host */}
                           {currentUser?.isHost && (
                             <>
                               <button
                                 type="button"
                                 onClick={() => handleToggleDJ(u.id)}
-                                className={`px-2.5 py-1 rounded-xl text-[10px] font-semibold border transition-all active:scale-95 ${
+                                className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition-all active:scale-95 ${
                                   u.isDJ
-                                    ? 'bg-[#8B5CF6]/20 border-[#8B5CF6]/40 text-[#C084FC] hover:bg-rose-500/20 hover:border-rose-500/30 hover:text-rose-400'
-                                    : 'bg-white/[0.05] border-white/[0.08] text-zinc-400 hover:text-white hover:border-[#8B5CF6]'
+                                    ? 'bg-[#8B5CF6]/20 border-[#8B5CF6]/35 text-[#C084FC] hover:bg-rose-500/15 hover:border-rose-500/25 hover:text-rose-400'
+                                    : 'bg-white/[0.04] border-white/[0.07] text-zinc-500 hover:text-zinc-200 hover:border-[#8B5CF6]/40'
                                 }`}
-                                title={u.isDJ ? 'Click to revoke DJ status' : 'Click to make DJ'}
                               >
                                 {u.isDJ ? 'DJ ✓' : '+ DJ'}
                               </button>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (window.confirm(`Transfer host role to ${u.username}?`)) {
-                                    handleTransferHost(u.id);
-                                  }
-                                }}
-                                className="p-1 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-amber-400/10 border border-transparent hover:border-amber-400/20 transition-colors"
-                                title="Transfer Host role"
+                                onClick={() => { if (window.confirm(`Transfer host to ${u.username}?`)) handleTransferHost(u.id); }}
+                                className="p-1 rounded-lg text-zinc-600 hover:text-amber-400 hover:bg-amber-400/10 transition-colors"
+                                title="Transfer Host"
                               >
                                 <Crown className="w-3.5 h-3.5" />
                               </button>
                             </>
                           )}
                           {!currentUser?.isHost && u.isDJ && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[10px] font-mono font-semibold text-[#8B5CF6]">
+                            <span className="px-2 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/25 text-[10px] font-mono font-semibold text-[#C084FC]">
                               DJ
                             </span>
                           )}
@@ -603,19 +508,13 @@ export default function RoomPage() {
               })}
             </div>
 
-            {/* Quick settings link for host */}
             {currentUser?.isHost && (
-              <div className="mt-3.5 pt-3 border-t border-white/[0.08] flex justify-end">
+              <div className="mt-4 pt-3 border-t border-white/[0.07] flex justify-end">
                 <button
-                  type="button"
-                  onClick={() => {
-                    setIsListeningNowOpen(false);
-                    setIsSettingsOpen(true);
-                  }}
+                  onClick={() => { setIsListenersOpen(false); setIsSettingsOpen(true); }}
                   className="flex items-center gap-1.5 text-xs font-semibold text-[#C084FC] hover:text-white transition-colors"
                 >
-                  <Settings className="w-3.5 h-3.5" />
-                  <span>Room Settings</span>
+                  <Settings className="w-3.5 h-3.5" /> Room Settings
                 </button>
               </div>
             )}
@@ -623,139 +522,66 @@ export default function RoomPage() {
         </div>
       )}
 
-      {/* ── Room Settings Modal ── */}
+      {/* ── Settings Modal ── */}
       {isSettingsOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
           onClick={e => { if (e.target === e.currentTarget) setIsSettingsOpen(false); }}
         >
-          <div
-            className="relative w-full max-w-sm rounded-3xl bg-[#121320]/95 border border-white/[0.1] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-4">
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320]/97 border border-white/[0.09] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center shadow-md shadow-[#8B5CF6]/25">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center">
                   <Settings className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white leading-none">Room Settings</h3>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">Control permissions & skipping</p>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">Permissions & skipping</p>
                 </div>
               </div>
-              <button
-                onClick={() => setIsSettingsOpen(false)}
-                className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
-              >
+              <button onClick={() => setIsSettingsOpen(false)} className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {!currentUser?.isHost ? (
-              <div className="py-6 text-center text-zinc-400 text-xs">
-                Only the room host can modify these settings.
-              </div>
+              <div className="py-6 text-center text-zinc-500 text-xs">Only the room host can modify settings.</div>
             ) : (
-              <div className="space-y-3.5">
-                {/* Playback Control Permission */}
-                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
-                  <div className="flex items-center justify-between mb-1">
+              <div className="space-y-3">
+                {/* Playback control */}
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold text-zinc-200">Playback Controls</span>
-                    <span className="text-[10px] font-mono text-zinc-400">
-                      {room.settings.isOpenControl ? 'Everyone' : 'Host & DJs'}
-                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500">{room.settings.isOpenControl ? 'Everyone' : 'Host & DJs'}</span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 mb-2.5">
-                    Who can play, pause, seek, and skip tracks.
-                  </p>
-                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/[0.03] border border-white/[0.06] rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateSettings({ isOpenControl: false })}
-                      className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${
-                        !room.settings.isOpenControl
-                          ? 'bg-[#8B5CF6] text-white shadow-sm'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      Host & DJs
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateSettings({ isOpenControl: true })}
-                      className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${
-                        room.settings.isOpenControl
-                          ? 'bg-[#8B5CF6] text-white shadow-sm'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      Everyone
-                    </button>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/[0.03] border border-white/[0.05] rounded-xl">
+                    <button type="button" onClick={() => handleUpdateSettings({ isOpenControl: false })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${!room.settings.isOpenControl ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Host & DJs</button>
+                    <button type="button" onClick={() => handleUpdateSettings({ isOpenControl: true })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${room.settings.isOpenControl ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Everyone</button>
                   </div>
                 </div>
 
-                {/* Queue Adding Permission */}
-                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
-                  <div className="flex items-center justify-between mb-1">
+                {/* Queue permission */}
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold text-zinc-200">Queue Permission</span>
-                    <span className="text-[10px] font-mono text-zinc-400">
-                      {room.settings.isOpenQueue ? 'Everyone' : 'Host & DJs'}
-                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500">{room.settings.isOpenQueue ? 'Everyone' : 'Host & DJs'}</span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 mb-2.5">
-                    Who can add new songs to the playlist queue.
-                  </p>
-                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/[0.03] border border-white/[0.06] rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateSettings({ isOpenQueue: true })}
-                      className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${
-                        room.settings.isOpenQueue
-                          ? 'bg-[#8B5CF6] text-white shadow-sm'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      Everyone
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateSettings({ isOpenQueue: false })}
-                      className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${
-                        !room.settings.isOpenQueue
-                          ? 'bg-[#8B5CF6] text-white shadow-sm'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      Host & DJs
-                    </button>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/[0.03] border border-white/[0.05] rounded-xl">
+                    <button type="button" onClick={() => handleUpdateSettings({ isOpenQueue: true })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${room.settings.isOpenQueue ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Everyone</button>
+                    <button type="button" onClick={() => handleUpdateSettings({ isOpenQueue: false })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${!room.settings.isOpenQueue ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Host & DJs</button>
                   </div>
                 </div>
 
-                {/* Vote Skip Threshold */}
-                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
-                  <div className="flex items-center justify-between mb-1">
+                {/* Skip threshold */}
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold text-zinc-200">Vote Skip Threshold</span>
-                    <span className="text-[10px] font-mono text-[#C084FC] font-bold">
-                      {room.settings.skipThresholdPercent}%
-                    </span>
+                    <span className="text-[10px] font-mono text-[#C084FC] font-bold">{room.settings.skipThresholdPercent}%</span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 mb-2.5">
-                    Percentage of listeners required to skip a track.
-                  </p>
                   <div className="grid grid-cols-3 gap-1.5">
                     {[33, 50, 66].map(pct => (
-                      <button
-                        key={pct}
-                        type="button"
-                        onClick={() => handleUpdateSettings({ skipThresholdPercent: pct })}
-                        className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all ${
-                          room.settings.skipThresholdPercent === pct
-                            ? 'bg-[#8B5CF6]/25 border-[#8B5CF6] text-[#C084FC] shadow-sm'
-                            : 'bg-white/[0.03] border-white/[0.06] text-zinc-400 hover:text-white hover:border-white/20'
-                        }`}
-                      >
-                        {pct}% {pct === 33 ? 'Fast' : pct === 50 ? 'Default' : 'Strict'}
+                      <button key={pct} type="button" onClick={() => handleUpdateSettings({ skipThresholdPercent: pct })} className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all ${room.settings.skipThresholdPercent === pct ? 'bg-[#8B5CF6]/25 border-[#8B5CF6] text-[#C084FC]' : 'bg-white/[0.03] border-white/[0.05] text-zinc-500 hover:text-white hover:border-white/20'}`}>
+                        {pct}%
                       </button>
                     ))}
                   </div>
@@ -766,146 +592,64 @@ export default function RoomPage() {
         </div>
       )}
 
-      {/* ── Share Modal / Popover ── */}
+      {/* ── Share Modal ── */}
       {isShareOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
           onClick={e => { if (e.target === e.currentTarget) setIsShareOpen(false); }}
         >
-          <div
-            className="relative w-full max-w-sm rounded-3xl bg-[#121320]/95 border border-white/[0.1] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-4">
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320]/97 border border-white/[0.09] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center shadow-md shadow-[#8B5CF6]/25">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center">
                   <Share2 className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white leading-none">Share Jam Room</h3>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">Invite friends to listen in sync</p>
+                  <h3 className="text-sm font-bold text-white leading-none">Share Room</h3>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">Invite friends to listen in sync</p>
                 </div>
               </div>
-              <button
-                onClick={() => setIsShareOpen(false)}
-                className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
-              >
+              <button onClick={() => setIsShareOpen(false)} className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Room Code Box */}
-            <div className="mb-4 p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-between">
+            {/* Room code */}
+            <div className="mb-4 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-between">
               <div>
                 <div className="text-[10px] uppercase font-mono tracking-wider text-zinc-500">Room Code</div>
                 <div className="text-lg font-mono font-bold text-white tracking-widest mt-0.5">{room.id}</div>
               </div>
-              <button
-                onClick={() => copyToClipboard(room.id, 'code')}
-                className="px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-zinc-200 flex items-center gap-1.5 transition-all border border-white/[0.08] active:scale-95"
-              >
-                {copiedField === 'code' ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-emerald-400">Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Copy Code</span>
-                  </>
-                )}
+              <button onClick={() => copyToClipboard(room.id, 'code')} className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-zinc-200 flex items-center gap-1.5 transition-all border border-white/[0.07] active:scale-95">
+                {copiedField === 'code' ? <><Check className="w-3.5 h-3.5 text-emerald-400" /><span className="text-emerald-400">Copied</span></> : <><Copy className="w-3.5 h-3.5 text-zinc-400" /><span>Copy</span></>}
               </button>
             </div>
 
-            {/* Invite Link Box */}
+            {/* Invite link */}
             <div className="mb-4">
-              <label className="block text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
-                Invite Link
-              </label>
+              <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Invite Link</label>
               <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={getShareUrl(room.id)}
-                  className="flex-1 min-w-0 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs font-mono text-zinc-200 truncate focus:outline-none focus:border-[#8B5CF6]/60 shadow-inner"
-                  onClick={e => (e.target as HTMLInputElement).select()}
-                />
-                <button
-                  onClick={() => copyToClipboard(getShareUrl(room.id), 'link')}
-                  className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] hover:opacity-95 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#8B5CF6]/20 active:scale-95"
-                >
-                  {copiedField === 'link' ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-white" />
-                      <span>Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy</span>
-                    </>
-                  )}
+                <input type="text" readOnly value={getShareUrl(room.id)} className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.07] rounded-xl px-3.5 py-2.5 text-xs font-mono text-zinc-300 truncate focus:outline-none" onClick={e => (e.target as HTMLInputElement).select()} />
+                <button onClick={() => copyToClipboard(getShareUrl(room.id), 'link')} className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] hover:opacity-95 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#8B5CF6]/20 active:scale-95">
+                  {copiedField === 'link' ? <><Check className="w-3.5 h-3.5" /><span>Copied</span></> : <><Copy className="w-3.5 h-3.5" /><span>Copy</span></>}
                 </button>
               </div>
             </div>
 
-            {/* Social / Direct Share */}
-            <div className="pt-3.5 border-t border-white/[0.08] space-y-2">
-              <div className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 mb-2">Share Directly</div>
-              <div className="grid grid-cols-2 gap-2">
-                {/* WhatsApp */}
-                <button
-                  onClick={() => {
-                    const text = `Join my JamFlow room: ${room.name || room.id}\nRoom Code: ${room.id}\n`;
-                    const url = getShareUrl(room.id);
-                    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + url)}`, '_blank');
-                  }}
-                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 text-[#25D366] text-xs font-medium transition-all active:scale-95"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>WhatsApp</span>
-                </button>
-
-                {/* Telegram */}
-                <button
-                  onClick={() => {
-                    const text = `Join my JamFlow room: ${room.name || room.id} (Code: ${room.id})`;
-                    const url = getShareUrl(room.id);
-                    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
-                  }}
-                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/30 text-[#0088cc] text-xs font-medium transition-all active:scale-95"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Telegram</span>
-                </button>
-              </div>
-
-              {/* Native OS Share Button */}
-              {hasNativeShare && (
-                <button
-                  onClick={async () => {
-                    try {
-                      await navigator.share({
-                        title: `JamFlow — ${room.name || room.id}`,
-                        text: `Listen to music in sync with me on JamFlow! Room Code: ${room.id}`,
-                        url: getShareUrl(room.id),
-                      });
-                      showToast('Shared successfully!');
-                      setIsShareOpen(false);
-                    } catch (err: any) {
-                      if (err?.name !== 'AbortError') {
-                        showToast('System share unavailable.');
-                      }
-                    }
-                  }}
-                  className="w-full mt-2 py-2.5 px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 text-xs font-medium flex items-center justify-center gap-2 transition-all border border-white/[0.08] active:scale-95"
-                >
-                  <Smartphone className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Open System Share ({isAndroid ? 'Android' : 'OS'})</span>
-                </button>
-              )}
+            {/* Social share */}
+            <div className="pt-3 border-t border-white/[0.07] grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { const t = `Join my JamFlow room! Code: ${room.id}\n`; const u = getShareUrl(room.id); window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(t + u)}`, '_blank'); }}
+                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/25 text-[#25D366] text-xs font-medium transition-all active:scale-95"
+              >
+                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+              </button>
+              <button
+                onClick={() => { const t = `Join my JamFlow room: ${room.id}`; const u = getShareUrl(room.id); window.open(`https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t)}`, '_blank'); }}
+                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/25 text-[#0088cc] text-xs font-medium transition-all active:scale-95"
+              >
+                <Send className="w-3.5 h-3.5" /> Telegram
+              </button>
             </div>
           </div>
         </div>
@@ -914,24 +658,20 @@ export default function RoomPage() {
       {/* ── Body ── */}
       <div className="flex-1 flex overflow-hidden min-h-0">
 
-        {/* ━━━━ MOBILE layout (flex-col, only when isMobile is true) ━━━━ */}
+        {/* ━━━━ MOBILE layout ━━━━ */}
         {isMobile === true && (
-          <div className="flex flex-col w-full overflow-hidden">
-            {/* Mini player — fixed height or sticky bar when expanded */}
+          <div className="flex flex-col w-full h-full overflow-hidden">
+            {/* 1. Player */}
             <div className="shrink-0">
               <YouTubePlayer
                 compact
-                minimized={isMobileExpanded}
-                onToggleMinimize={() => setIsMobileExpanded(prev => !prev)}
                 currentTrack={room.currentTrack}
                 playbackState={playbackState}
                 serverPosition={serverPosition}
                 lastSyncTimestamp={lastSyncTimestamp}
                 canControl={canControl}
                 hasQueue={room.queue.length > 0}
-                onSkipNext={() => {
-                  if (room.queue.length > 0) handleSkipTo(room.queue[0].id);
-                }}
+                onSkipNext={() => { if (room.queue.length > 0) handleSkipTo(room.queue[0].id); }}
                 onPlay={handlePlay}
                 onPause={handlePause}
                 onSeek={handleSeekAction}
@@ -939,180 +679,182 @@ export default function RoomPage() {
               />
             </div>
 
-            {/* Queue / Chat — gets all remaining height */}
-            <div className="flex-1 min-h-0 flex flex-col border-t border-white/[0.08] bg-[#0E0F18]/95 backdrop-blur-xl">
-              {/* Sleek Segmented Switcher with Expand / Split Toggle */}
-              <div className="shrink-0 px-3.5 py-2.5 bg-[#0C0D16]/60 backdrop-blur-xl border-b border-white/[0.06] flex items-center gap-2">
-                <div className="flex-1 flex p-1 bg-white/[0.04] border border-white/[0.08] rounded-2xl shadow-inner">
-                  <button
-                    onClick={() => switchTab('queue')}
-                    className={`flex-1 py-2 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
-                      mobileTab === 'queue'
-                        ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
-                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <ListMusic className="w-3.5 h-3.5" />
-                    <span>Queue</span>
-                    {room.queue.length > 0 && (
-                      <span
-                        className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold transition-colors ${
-                          mobileTab === 'queue'
-                            ? 'bg-white/25 text-white'
-                            : 'bg-white/[0.08] text-zinc-400'
-                        }`}
-                      >
-                        {room.queue.length}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => switchTab('chat')}
-                    className={`flex-1 py-2 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ${
-                      mobileTab === 'chat'
-                        ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
-                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Chat</span>
-                    {unreadChatCount > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full bg-gradient-to-r from-[#D946EF] to-rose-500 text-white text-[10px] font-bold font-mono shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse">
-                        {unreadChatCount}
-                      </span>
-                    )}
-                  </button>
-                </div>
+            {/* 2. Listener indicator — tap to open bottom sheet */}
+            <button
+              onClick={() => setIsListenersOpen(true)}
+              className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-[#22232E] bg-[#0C0D15] hover:bg-[#12131D] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D946EF] opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D946EF]" />
+                </span>
+                <span className="text-xs font-semibold text-zinc-300">
+                  {room.users.length} listening
+                </span>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
+            </button>
 
-                {/* Expand / Collapse Button to toggle full-screen Queue/Chat */}
+            {/* 3. YouTube Input (Immediately below player & listener indicator) */}
+            <div className="shrink-0 px-4 pt-3 pb-2.5 border-b border-[#22232E] bg-[#0E0F17]">
+              <YouTubeInput
+                canAdd={canAdd}
+                onAddTrack={handleAddTrack}
+                autoFocusRef={addTrackInputRef}
+              />
+            </div>
+
+            {/* 4. Queue / Chat tabs directly below YouTube input */}
+            <div className="flex-1 min-h-0 flex flex-col bg-[#0A0B12]">
+              <div className="shrink-0 flex border-b border-[#22232E] bg-[#0C0D15]">
                 <button
-                  onClick={() => setIsMobileExpanded(prev => !prev)}
-                  className="px-3 py-2 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 hover:text-white flex items-center gap-1.5 text-xs font-semibold active:scale-95 transition-all shadow-sm shrink-0"
-                  title={isMobileExpanded ? "Split Screen View" : "Maximize Queue/Chat Space"}
+                  onClick={() => switchTab('queue')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold tracking-wide transition-all ${
+                    activeTab === 'queue'
+                      ? 'text-white border-b-2 border-[#8B5CF6]'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
                 >
-                  {isMobileExpanded ? (
-                    <>
-                      <Minimize2 className="w-3.5 h-3.5 text-[#C084FC]" />
-                      <span className="hidden xs:inline">Split</span>
-                    </>
-                  ) : (
-                    <>
-                      <Maximize2 className="w-3.5 h-3.5 text-[#C084FC]" />
-                      <span className="hidden xs:inline">Expand</span>
-                    </>
+                  <ListMusic className="w-3.5 h-3.5" />
+                  Queue
+                  {room.queue.length > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'queue' ? 'bg-[#8B5CF6]/25 text-[#C084FC]' : 'bg-white/[0.07] text-zinc-500'}`}>
+                      {room.queue.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => switchTab('chat')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold tracking-wide transition-all ${
+                    activeTab === 'chat'
+                      ? 'text-white border-b-2 border-[#8B5CF6]'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Chat
+                  {unreadChatCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#D946EF] to-rose-500 text-white text-[10px] font-bold font-mono shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse">
+                      {unreadChatCount}
+                    </span>
                   )}
                 </button>
               </div>
 
-              {/* Panel content */}
+              {/* Tab Content */}
               <div className="flex-1 min-h-0 overflow-hidden">
-                {mobileTab === 'queue' ? <QueueList {...queueProps} userCount={room.users.length} /> : <ChatAndReactions {...chatProps} />}
+                {activeTab === 'queue' ? (
+                  <QueueList
+                    {...queueProps}
+                    onFocusAddInput={() => addTrackInputRef.current?.focus()}
+                  />
+                ) : (
+                  <ChatAndReactions {...chatProps} />
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* ━━━━ DESKTOP layout (flex-row, when not mobile) ━━━━ */}
+        {/* ━━━━ DESKTOP layout ━━━━ */}
         {isMobile !== true && (
           <div className="flex w-full overflow-hidden flex-1 min-h-0">
-            {/* Left — Now Playing (~70%) */}
-            <div className="flex-1 min-w-0 relative h-full overflow-hidden bg-[#0A0B12]">
-
-              {/* ── Album art background — starts right below the header, fills full column ── */}
+            {/* Left — Player column (~65-70%) */}
+            <div className="flex-1 min-w-0 relative h-full flex flex-col overflow-hidden bg-[#0A0B12]">
+              {/* Album art background */}
               {room.currentTrack?.thumbnail ? (
                 <>
                   <img
                     key={room.currentTrack.thumbnail}
                     src={room.currentTrack.thumbnail}
                     alt=""
-                    className="absolute inset-0 w-full h-full object-cover object-top blur-3xl scale-110 opacity-30 transition-all duration-1000 pointer-events-none z-0"
+                    className="absolute inset-0 w-full h-full object-cover blur-3xl scale-110 opacity-20 transition-all duration-1000 pointer-events-none z-0"
                   />
-                  {/* Gradient: subtle at top, darkens toward the controls at the bottom */}
-                  <div
-                    className="absolute inset-0 z-0 pointer-events-none"
-                    style={{
-                      background: 'linear-gradient(to bottom, rgba(10,11,18,0.1) 0%, rgba(10,11,18,0.55) 60%, rgba(10,11,18,0.85) 100%)',
-                    }}
-                  />
+                  <div className="absolute inset-0 z-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(10,11,18,0.2) 0%, rgba(10,11,18,0.7) 60%, rgba(10,11,18,0.95) 100%)' }} />
                 </>
               ) : (
-                /* No track — violet aurora fallback */
-                <div
-                  className="absolute inset-0 z-0 pointer-events-none"
-                  style={{
-                    background: 'radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.3) 0%, rgba(217,70,239,0.12) 45%, transparent 70%)',
-                  }}
-                />
+                <div className="absolute inset-0 z-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.2) 0%, transparent 65%)' }} />
               )}
 
-              <YouTubePlayer
-                currentTrack={room.currentTrack}
-                playbackState={playbackState}
-                serverPosition={serverPosition}
-                lastSyncTimestamp={lastSyncTimestamp}
-                canControl={canControl}
-                users={room.users}
-                currentUser={currentUser}
-                userCount={room.users.length}
-                hasQueue={room.queue.length > 0}
-                onSkipNext={() => {
-                  if (room.queue.length > 0) handleSkipTo(room.queue[0].id);
-                }}
-                onPlay={handlePlay}
-                onPause={handlePause}
-                onSeek={handleSeekAction}
-                onTrackEnded={handleTrackEnded}
-              />
+              {/* Player in upper area */}
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <YouTubePlayer
+                  currentTrack={room.currentTrack}
+                  playbackState={playbackState}
+                  serverPosition={serverPosition}
+                  lastSyncTimestamp={lastSyncTimestamp}
+                  canControl={canControl}
+                  users={room.users}
+                  currentUser={currentUser}
+                  userCount={room.users.length}
+                  hasQueue={room.queue.length > 0}
+                  onSkipNext={() => { if (room.queue.length > 0) handleSkipTo(room.queue[0].id); }}
+                  onPlay={handlePlay}
+                  onPause={handlePause}
+                  onSeek={handleSeekAction}
+                  onTrackEnded={handleTrackEnded}
+                  onOpenListeners={() => setIsListenersOpen(true)}
+                />
+              </div>
+
+              {/* Bottom of Left Column: YouTube Input */}
+              <div className="relative z-10 shrink-0 p-4 border-t border-[#22232E] bg-[#0E0F17]/95 backdrop-blur-md">
+                <YouTubeInput
+                  canAdd={canAdd}
+                  onAddTrack={handleAddTrack}
+                  autoFocusRef={addTrackInputRef}
+                />
+              </div>
             </div>
 
-            {/* Right — sidebar (~30% / 340-380px) */}
-            <div className="w-[340px] xl:w-[380px] shrink-0 border-l border-white/[0.08] flex flex-col bg-[#0D0E17]/95 backdrop-blur-2xl">
-              {/* Desktop Sidebar tab switcher */}
-              <div className="shrink-0 p-3 border-b border-white/[0.06] bg-[#0C0D16]/80">
-                <div className="flex p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl shadow-inner">
-                  <button
-                    onClick={() => switchTab('queue')}
-                    className={`flex-1 py-2 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-lg transition-all duration-200 ${
-                      desktopTab === 'queue'
-                        ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
-                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <ListMusic className="w-3.5 h-3.5" />
-                    <span>Queue</span>
-                    {room.queue.length > 0 && (
-                      <span
-                        className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold transition-colors ${
-                          desktopTab === 'queue'
-                            ? 'bg-white/25 text-white'
-                            : 'bg-white/[0.08] text-zinc-400'
-                        }`}
-                      >
-                        {room.queue.length}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => switchTab('chat')}
-                    className={`flex-1 py-2 text-xs font-bold tracking-wide flex items-center justify-center gap-2 rounded-lg transition-all duration-200 ${
-                      desktopTab === 'chat'
-                        ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
-                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Chat</span>
-                    {unreadChatCount > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full bg-gradient-to-r from-[#D946EF] to-rose-500 text-white text-[10px] font-bold font-mono shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse">
-                        {unreadChatCount}
-                      </span>
-                    )}
-                  </button>
-                </div>
+            {/* Right — Sidebar (~340-380px) */}
+            <div className="w-[340px] xl:w-[380px] shrink-0 border-l border-[#22232E] flex flex-col bg-[#0D0E17]/97 backdrop-blur-2xl">
+              {/* Sidebar tab switcher */}
+              <div className="shrink-0 flex border-b border-[#22232E] bg-[#0C0D16]">
+                <button
+                  onClick={() => switchTab('queue')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold tracking-wide transition-all ${
+                    activeTab === 'queue'
+                      ? 'text-white border-b-2 border-[#8B5CF6]'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  <ListMusic className="w-3.5 h-3.5" />
+                  Queue
+                  {room.queue.length > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${activeTab === 'queue' ? 'bg-[#8B5CF6]/25 text-[#C084FC]' : 'bg-white/[0.07] text-zinc-500'}`}>
+                      {room.queue.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => switchTab('chat')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold tracking-wide transition-all ${
+                    activeTab === 'chat'
+                      ? 'text-white border-b-2 border-[#8B5CF6]'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Chat
+                  {unreadChatCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#D946EF] to-rose-500 text-white text-[10px] font-bold font-mono animate-pulse">
+                      {unreadChatCount}
+                    </span>
+                  )}
+                </button>
               </div>
 
               <div className="flex-1 min-h-0 overflow-hidden">
-                {desktopTab === 'queue' ? <QueueList {...queueProps} userCount={room.users.length} /> : <ChatAndReactions {...chatProps} />}
+                {activeTab === 'queue' ? (
+                  <QueueList
+                    {...queueProps}
+                    onFocusAddInput={() => addTrackInputRef.current?.focus()}
+                  />
+                ) : (
+                  <ChatAndReactions {...chatProps} />
+                )}
               </div>
             </div>
           </div>

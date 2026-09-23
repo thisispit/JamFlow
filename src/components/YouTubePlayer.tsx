@@ -19,11 +19,13 @@ interface YouTubePlayerProps {
   hasQueue?: boolean;
   userCount?: number;
   onSkipNext?: () => void;
+  onOpenListeners?: () => void;
   onPlay: (position: number) => void;
   onPause: (position: number) => void;
   onSeek: (position: number) => void;
   onTrackEnded: (trackId: string) => void;
 }
+
 
 const SoundVisualizer: React.FC<{ isPlaying: boolean }> = ({ isPlaying }) => {
   const bars = [4, 7, 5, 9, 8, 4, 8, 6, 9, 7, 5, 8, 4];
@@ -115,6 +117,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   hasQueue = false,
   userCount = 1,
   onSkipNext,
+  onOpenListeners,
   onPlay,
   onPause,
   onSeek,
@@ -147,6 +150,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [needsGesture, setNeedsGesture] = useState(false);
   const [playerError, setPlayerError] = useState<string | null>(null);
+  const [showDrift, setShowDrift] = useState(false);
 
   const setInternalAction = useCallback((durationMs = 3000) => {
     isInternalActionRef.current = true;
@@ -948,6 +952,36 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 <Maximize className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Simple status: ● SYNCED / ◌ SYNCING */}
+            <div className="relative z-10 mt-2 pb-0.5 flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDrift(prev => !prev);
+                  handleResync();
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] transition-all active:scale-95 text-xs font-mono select-none"
+                title="Tap to see sync drift info / resync"
+              >
+                {isSyncing ? (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full border border-[#D946EF] border-t-transparent animate-spin" />
+                    <span className="text-[#C084FC] font-semibold tracking-wider text-[11px]">◌ SYNCING</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#D946EF] shadow-[0_0_6px_rgba(217,70,239,0.8)]" />
+                    <span className="text-zinc-400 font-medium tracking-wider text-[11px]">● SYNCED</span>
+                  </>
+                )}
+                {showDrift && (
+                  <span className="text-[10px] text-zinc-500 font-mono ml-1">
+                    ({Math.abs(currentTime - getExpectedServerPosition()).toFixed(2)}s)
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
@@ -1124,17 +1158,6 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         </div>
         <div className="flex justify-between text-[11px] font-mono text-zinc-400 px-0.5">
           <span>{formatTime(currentTime)}</span>
-          <button
-            type="button"
-            onClick={handleResync}
-            title="Click to sync track with host"
-            className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-ping' : isPlaying ? 'bg-emerald-400' : 'bg-[#8B5CF6]'}`} />
-            <span className="text-[10px] text-zinc-400 hover:text-white font-sans font-medium transition-colors">
-              {isSyncing ? 'SYNCING…' : 'SYNCED <0.1s'}
-            </span>
-          </button>
           <span>{formatTime(duration || currentTrack?.duration || 0)}</span>
         </div>
       </div>
@@ -1211,37 +1234,36 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         </div>
       </div>
 
-      {/* Collaborative LISTENING NOW Layer */}
-      {users && users.length > 0 && !isFullscreen && (
-        <div className="relative z-10 mt-5 flex flex-col items-center gap-1 select-none shrink-0">
-          <span className="text-[9px] font-mono tracking-wider uppercase text-zinc-500 font-bold">
-            LISTENING NOW
-          </span>
-          <div className="flex items-center gap-2">
-            {users.slice(0, 6).map((u) => (
-              <div key={u.id} className="flex flex-col items-center gap-0.5 group relative" title={u.username}>
-                <div className="w-6 h-6 rounded-full border border-[#242429] bg-[#111114] p-0.5 relative shadow">
-                  <img src={u.avatar} alt={u.username} className="w-full h-full rounded-full object-cover" />
-                  {u.isHost && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-500 text-black flex items-center justify-center shadow">
-                      <Crown className="w-1.5 h-1.5" />
-                    </div>
-                  )}
-                </div>
-                <span className="text-[9px] text-zinc-400 max-w-[48px] truncate group-hover:text-white transition-colors">
-                  {currentUser?.id === u.id ? 'You' : u.username}
-                </span>
-              </div>
-            ))}
-            {users.length > 6 && (
-              <span className="text-[10px] text-zinc-500 font-mono">+{users.length - 6}</span>
-            )}
-          </div>
-          <span className="text-[10px] text-zinc-500">
-            {users.length} {users.length === 1 ? 'person' : 'people'} in this flow
-          </span>
-        </div>
-      )}
+      {/* Simple status: ● SYNCED / ◌ SYNCING */}
+      <div className="relative z-10 mt-4 flex justify-center">
+        <button
+          type="button"
+          onClick={() => {
+            setShowDrift(prev => !prev);
+            handleResync();
+          }}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] transition-all active:scale-95 text-xs font-mono select-none"
+          title="Tap to see sync drift info / resync"
+        >
+          {isSyncing ? (
+            <>
+              <span className="w-1.5 h-1.5 rounded-full border border-[#D946EF] border-t-transparent animate-spin" />
+              <span className="text-[#C084FC] font-semibold tracking-wider text-[11px]">◌ SYNCING</span>
+            </>
+          ) : (
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#D946EF] shadow-[0_0_6px_rgba(217,70,239,0.8)]" />
+              <span className="text-zinc-400 font-medium tracking-wider text-[11px]">● SYNCED</span>
+            </>
+          )}
+          {showDrift && (
+            <span className="text-[10px] text-zinc-500 font-mono ml-1">
+              ({Math.abs(currentTime - getExpectedServerPosition()).toFixed(2)}s)
+            </span>
+          )}
+        </button>
+      </div>
+
 
       <style jsx>{`
         @keyframes audioPulse {
