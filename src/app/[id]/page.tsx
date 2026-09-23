@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   Radio, Share2, Check, LogOut, Crown, Copy,
   AlertCircle, ListMusic, MessageSquare, MessageCircle, Send,
-  Settings, X, Users, ChevronDown,
+  Settings, X, Users, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -43,11 +43,38 @@ export default function RoomPage() {
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const activeTabRef = useRef<'queue' | 'chat'>('queue');
   const addTrackInputRef = useRef<HTMLInputElement>(null);
+  const [isMobilePanelExpanded, setIsMobilePanelExpanded] = useState(false);
+  const touchStartYRef = useRef<number | null>(null);
 
   const switchTab = (tab: 'queue' | 'chat') => {
     setActiveTab(tab);
     activeTabRef.current = tab;
     if (tab === 'chat') setUnreadChatCount(0);
+  };
+
+  const handleMobileTabClick = (tab: 'queue' | 'chat') => {
+    switchTab(tab);
+    setIsMobilePanelExpanded(true);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent, forExpanded: boolean) => {
+    if (touchStartYRef.current === null) return;
+    const touchEndY = e.changedTouches[0].clientY;
+    const diffY = touchEndY - touchStartYRef.current;
+    touchStartYRef.current = null;
+
+    // Drag up on collapsed header -> expand
+    if (!forExpanded && diffY < -30) {
+      setIsMobilePanelExpanded(true);
+    }
+    // Drag down on expanded header -> collapse
+    else if (forExpanded && diffY > 30) {
+      setIsMobilePanelExpanded(false);
+    }
   };
 
   const [playbackState, setPlaybackState] = useState<PlaybackState>('paused');
@@ -432,7 +459,7 @@ export default function RoomPage() {
       {/* ── Listeners Bottom Sheet ── */}
       {isListenersOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-60 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={() => setIsListenersOpen(false)}
         >
           <div
@@ -525,7 +552,7 @@ export default function RoomPage() {
       {/* ── Settings Modal ── */}
       {isSettingsOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+          className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
           onClick={e => { if (e.target === e.currentTarget) setIsSettingsOpen(false); }}
         >
           <div className="relative w-full max-w-sm rounded-3xl bg-[#121320]/97 border border-white/[0.09] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150">
@@ -707,42 +734,69 @@ export default function RoomPage() {
 
             {/* 4. Queue / Chat tabs directly below YouTube input */}
             <div className="flex-1 min-h-0 flex flex-col bg-[#0A0B12]">
-              <div className="shrink-0 flex border-b border-[#22232E] bg-[#0C0D15]">
+              {/* Header bar with swipe / tap indicator */}
+              <div
+                onTouchStart={handleTouchStart}
+                onTouchEnd={(e) => handleTouchEnd(e, false)}
+                className="shrink-0 flex flex-col border-b border-[#22232E] bg-[#0C0D15] select-none"
+              >
+                {/* Pull handle indicator */}
                 <button
-                  onClick={() => switchTab('queue')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold tracking-wide transition-all ${
-                    activeTab === 'queue'
-                      ? 'text-white border-b-2 border-[#8B5CF6]'
-                      : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
+                  type="button"
+                  onClick={() => setIsMobilePanelExpanded(true)}
+                  className="w-full flex items-center justify-center pt-2 pb-1 group focus:outline-none"
+                  aria-label="Expand queue and chat overlay"
                 >
-                  <ListMusic className="w-3.5 h-3.5" />
-                  Queue
-                  {room.queue.length > 0 && (
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'queue' ? 'bg-[#8B5CF6]/25 text-[#C084FC]' : 'bg-white/[0.07] text-zinc-500'}`}>
-                      {room.queue.length}
-                    </span>
-                  )}
+                  <div className="w-10 h-1 rounded-full bg-white/20 group-hover:bg-white/40 transition-colors" />
                 </button>
-                <button
-                  onClick={() => switchTab('chat')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold tracking-wide transition-all ${
-                    activeTab === 'chat'
-                      ? 'text-white border-b-2 border-[#8B5CF6]'
-                      : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  Chat
-                  {unreadChatCount > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#D946EF] to-rose-500 text-white text-[10px] font-bold font-mono shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse">
-                      {unreadChatCount}
-                    </span>
-                  )}
-                </button>
+
+                {/* Tabs row */}
+                <div className="flex items-center px-1">
+                  <button
+                    onClick={() => handleMobileTabClick('queue')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold tracking-wide transition-all ${
+                      activeTab === 'queue'
+                        ? 'text-white border-b-2 border-[#8B5CF6]'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    <ListMusic className="w-3.5 h-3.5" />
+                    Queue
+                    {room.queue.length > 0 && (
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'queue' ? 'bg-[#8B5CF6]/25 text-[#C084FC]' : 'bg-white/[0.07] text-zinc-500'}`}>
+                        {room.queue.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleMobileTabClick('chat')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold tracking-wide transition-all ${
+                      activeTab === 'chat'
+                        ? 'text-white border-b-2 border-[#8B5CF6]'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Chat
+                    {unreadChatCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#D946EF] to-rose-500 text-white text-[10px] font-bold font-mono shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse">
+                        {unreadChatCount}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsMobilePanelExpanded(true)}
+                    className="px-2.5 py-2 text-zinc-400 hover:text-white transition-colors flex items-center gap-1 active:scale-95"
+                    title="Expand overlay"
+                    aria-label="Expand"
+                  >
+                    <ChevronUp className="w-4 h-4 text-zinc-400 hover:text-[#C084FC]" />
+                  </button>
+                </div>
               </div>
 
-              {/* Tab Content */}
+              {/* Collapsed Tab Content */}
               <div className="flex-1 min-h-0 overflow-hidden">
                 {activeTab === 'queue' ? (
                   <QueueList
@@ -754,6 +808,99 @@ export default function RoomPage() {
                 )}
               </div>
             </div>
+
+            {/* Expandable Overlay Bottom Sheet for Mobile Queue/Chat */}
+            {isMobilePanelExpanded && (
+              <>
+                {/* Backdrop covering player and YouTubeInput */}
+                <div
+                  className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+                  onClick={() => setIsMobilePanelExpanded(false)}
+                />
+
+                {/* Expanded Sheet */}
+                <div
+                  className="fixed inset-x-0 bottom-0 top-14 z-50 bg-[#0C0D17] border-t border-white/[0.12] rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300 transform-gpu"
+                >
+                  {/* Header with drag handle and tabs */}
+                  <div
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={(e) => handleTouchEnd(e, true)}
+                    className="shrink-0 flex flex-col border-b border-[#22232E] bg-[#0E0F1A] select-none"
+                  >
+                    {/* Pull down indicator pill */}
+                    <button
+                      type="button"
+                      onClick={() => setIsMobilePanelExpanded(false)}
+                      className="w-full flex items-center justify-center pt-2.5 pb-1 group focus:outline-none"
+                      aria-label="Collapse overlay"
+                    >
+                      <div className="w-10 h-1.5 rounded-full bg-white/25 group-hover:bg-white/45 transition-colors" />
+                    </button>
+
+                    {/* Tabs row with collapse button */}
+                    <div className="flex items-center px-2">
+                      <button
+                        onClick={() => switchTab('queue')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold tracking-wide transition-all ${
+                          activeTab === 'queue'
+                            ? 'text-white border-b-2 border-[#8B5CF6]'
+                            : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
+                      >
+                        <ListMusic className="w-4 h-4" />
+                        Queue
+                        {room.queue.length > 0 && (
+                          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'queue' ? 'bg-[#8B5CF6]/25 text-[#C084FC]' : 'bg-white/[0.07] text-zinc-500'}`}>
+                            {room.queue.length}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => switchTab('chat')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold tracking-wide transition-all ${
+                          activeTab === 'chat'
+                            ? 'text-white border-b-2 border-[#8B5CF6]'
+                            : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        Chat
+                        {unreadChatCount > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#D946EF] to-rose-500 text-white text-[10px] font-bold font-mono shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse">
+                            {unreadChatCount}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsMobilePanelExpanded(false)}
+                        className="p-2 ml-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/[0.05] transition-colors active:scale-95"
+                        title="Collapse overlay"
+                        aria-label="Collapse"
+                      >
+                        <ChevronDown className="w-5 h-5 text-zinc-400 hover:text-white" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded Content with full vertical height */}
+                  <div className="flex-1 min-h-0 overflow-hidden bg-[#0A0B12]">
+                    {activeTab === 'queue' ? (
+                      <QueueList
+                        {...queueProps}
+                        onFocusAddInput={() => {
+                          setIsMobilePanelExpanded(false);
+                          setTimeout(() => addTrackInputRef.current?.focus(), 150);
+                        }}
+                      />
+                    ) : (
+                      <ChatAndReactions {...chatProps} />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
