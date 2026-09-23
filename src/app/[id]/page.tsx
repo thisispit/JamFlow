@@ -456,14 +456,14 @@ export default function RoomPage() {
         </div>
       </header>
 
-      {/* ── Listeners Bottom Sheet ── */}
+      {/* ── Listeners Center Popup ── */}
       {isListenersOpen && (
         <div
-          className="fixed inset-0 z-60 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
           onClick={() => setIsListenersOpen(false)}
         >
           <div
-            className="relative w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-[#121320]/97 border border-white/[0.09] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200"
+            className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
@@ -552,10 +552,10 @@ export default function RoomPage() {
       {/* ── Settings Modal ── */}
       {isSettingsOpen && (
         <div
-          className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+          className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
           onClick={e => { if (e.target === e.currentTarget) setIsSettingsOpen(false); }}
         >
-          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320]/97 border border-white/[0.09] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150">
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center">
@@ -622,10 +622,10 @@ export default function RoomPage() {
       {/* ── Share Modal ── */}
       {isShareOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
           onClick={e => { if (e.target === e.currentTarget) setIsShareOpen(false); }}
         >
-          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320]/97 border border-white/[0.09] p-5 shadow-2xl backdrop-blur-2xl text-zinc-100 animate-in fade-in zoom-in-95 duration-150">
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center">
@@ -809,98 +809,98 @@ export default function RoomPage() {
               </div>
             </div>
 
-            {/* Expandable Overlay Bottom Sheet for Mobile Queue/Chat */}
-            {isMobilePanelExpanded && (
-              <>
-                {/* Backdrop covering player and YouTubeInput */}
-                <div
-                  className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+            {/* Expandable Overlay Bottom Sheet for Mobile Queue/Chat with Smooth Reveal & Collapse Animation */}
+            {/* Backdrop covering player and YouTubeInput */}
+            <div
+              className={`fixed inset-0 z-40 bg-black/75 transition-opacity duration-300 ease-out ${
+                isMobilePanelExpanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+              }`}
+              onClick={() => setIsMobilePanelExpanded(false)}
+            />
+
+            {/* Expanded Sheet */}
+            <div
+              className={`fixed inset-x-0 bottom-0 top-14 z-50 bg-[#0C0D17] border-t border-white/[0.12] rounded-t-3xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-transform ${
+                isMobilePanelExpanded ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'
+              }`}
+            >
+              {/* Header with drag handle and tabs */}
+              <div
+                onTouchStart={handleTouchStart}
+                onTouchEnd={(e) => handleTouchEnd(e, true)}
+                className="shrink-0 flex flex-col border-b border-[#22232E] bg-[#0E0F1A] select-none"
+              >
+                {/* Pull down indicator pill */}
+                <button
+                  type="button"
                   onClick={() => setIsMobilePanelExpanded(false)}
-                />
-
-                {/* Expanded Sheet */}
-                <div
-                  className="fixed inset-x-0 bottom-0 top-14 z-50 bg-[#0C0D17] border-t border-white/[0.12] rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300 transform-gpu"
+                  className="w-full flex items-center justify-center pt-2.5 pb-1 group focus:outline-none"
+                  aria-label="Collapse overlay"
                 >
-                  {/* Header with drag handle and tabs */}
-                  <div
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={(e) => handleTouchEnd(e, true)}
-                    className="shrink-0 flex flex-col border-b border-[#22232E] bg-[#0E0F1A] select-none"
+                  <div className="w-10 h-1.5 rounded-full bg-white/25 group-hover:bg-white/45 transition-colors" />
+                </button>
+
+                {/* Tabs row with collapse button */}
+                <div className="flex items-center px-2">
+                  <button
+                    onClick={() => switchTab('queue')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold tracking-wide transition-all ${
+                      activeTab === 'queue'
+                        ? 'text-white border-b-2 border-[#8B5CF6]'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
                   >
-                    {/* Pull down indicator pill */}
-                    <button
-                      type="button"
-                      onClick={() => setIsMobilePanelExpanded(false)}
-                      className="w-full flex items-center justify-center pt-2.5 pb-1 group focus:outline-none"
-                      aria-label="Collapse overlay"
-                    >
-                      <div className="w-10 h-1.5 rounded-full bg-white/25 group-hover:bg-white/45 transition-colors" />
-                    </button>
-
-                    {/* Tabs row with collapse button */}
-                    <div className="flex items-center px-2">
-                      <button
-                        onClick={() => switchTab('queue')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold tracking-wide transition-all ${
-                          activeTab === 'queue'
-                            ? 'text-white border-b-2 border-[#8B5CF6]'
-                            : 'text-zinc-500 hover:text-zinc-300'
-                        }`}
-                      >
-                        <ListMusic className="w-4 h-4" />
-                        Queue
-                        {room.queue.length > 0 && (
-                          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'queue' ? 'bg-[#8B5CF6]/25 text-[#C084FC]' : 'bg-white/[0.07] text-zinc-500'}`}>
-                            {room.queue.length}
-                          </span>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => switchTab('chat')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold tracking-wide transition-all ${
-                          activeTab === 'chat'
-                            ? 'text-white border-b-2 border-[#8B5CF6]'
-                            : 'text-zinc-500 hover:text-zinc-300'
-                        }`}
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                        Chat
-                        {unreadChatCount > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#D946EF] to-rose-500 text-white text-[10px] font-bold font-mono shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse">
-                            {unreadChatCount}
-                          </span>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsMobilePanelExpanded(false)}
-                        className="p-2 ml-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/[0.05] transition-colors active:scale-95"
-                        title="Collapse overlay"
-                        aria-label="Collapse"
-                      >
-                        <ChevronDown className="w-5 h-5 text-zinc-400 hover:text-white" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Expanded Content with full vertical height */}
-                  <div className="flex-1 min-h-0 overflow-hidden bg-[#0A0B12]">
-                    {activeTab === 'queue' ? (
-                      <QueueList
-                        {...queueProps}
-                        onFocusAddInput={() => {
-                          setIsMobilePanelExpanded(false);
-                          setTimeout(() => addTrackInputRef.current?.focus(), 150);
-                        }}
-                      />
-                    ) : (
-                      <ChatAndReactions {...chatProps} />
+                    <ListMusic className="w-4 h-4" />
+                    Queue
+                    {room.queue.length > 0 && (
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'queue' ? 'bg-[#8B5CF6]/25 text-[#C084FC]' : 'bg-white/[0.07] text-zinc-500'}`}>
+                        {room.queue.length}
+                      </span>
                     )}
-                  </div>
+                  </button>
+                  <button
+                    onClick={() => switchTab('chat')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold tracking-wide transition-all ${
+                      activeTab === 'chat'
+                        ? 'text-white border-b-2 border-[#8B5CF6]'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Chat
+                    {unreadChatCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#D946EF] to-rose-500 text-white text-[10px] font-bold font-mono shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse">
+                        {unreadChatCount}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsMobilePanelExpanded(false)}
+                    className="p-2 ml-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/[0.05] transition-colors active:scale-95"
+                    title="Collapse overlay"
+                    aria-label="Collapse"
+                  >
+                    <ChevronDown className="w-5 h-5 text-zinc-400 hover:text-white" />
+                  </button>
                 </div>
-              </>
-            )}
+              </div>
+
+              {/* Expanded Content with full vertical height */}
+              <div className="flex-1 min-h-0 overflow-hidden bg-[#0A0B12]">
+                {activeTab === 'queue' ? (
+                  <QueueList
+                    {...queueProps}
+                    onFocusAddInput={() => {
+                      setIsMobilePanelExpanded(false);
+                      setTimeout(() => addTrackInputRef.current?.focus(), 150);
+                    }}
+                  />
+                ) : (
+                  <ChatAndReactions {...chatProps} />
+                )}
+              </div>
+            </div>
           </div>
         )}
 
