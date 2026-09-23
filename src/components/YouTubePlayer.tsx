@@ -709,22 +709,13 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       >
         {/* Top Bar */}
         <div className="pointer-events-auto bg-gradient-to-b from-black/85 via-black/40 to-transparent pt-3 pb-8 px-4 sm:px-6 flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0 flex-1 mr-3">
-            <button
-              onClick={(e) => { e.stopPropagation(); exitFullscreen(); }}
-              className="p-2 -ml-2 rounded-full text-white/90 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-              title="Exit Fullscreen (Esc)"
-            >
-              <Minimize className="w-5 h-5" />
-            </button>
-            <div className="min-w-0">
-              <p className="text-white text-sm sm:text-base font-bold truncate leading-tight drop-shadow">
-                {currentTrack?.title ?? 'JamFlow'}
-              </p>
-              <p className="text-zinc-300 text-xs truncate mt-0.5 drop-shadow">
-                {currentTrack?.author ?? ''}
-              </p>
-            </div>
+          <div className="min-w-0 flex-1 mr-3">
+            <p className="text-white text-sm sm:text-base font-bold truncate leading-tight drop-shadow">
+              {currentTrack?.title ?? 'JamFlow'}
+            </p>
+            <p className="text-zinc-300 text-xs truncate mt-0.5 drop-shadow">
+              {currentTrack?.author ?? ''}
+            </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -742,14 +733,6 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 <span>SYNCED</span>
               </div>
             )}
-
-            <button
-              onClick={(e) => { e.stopPropagation(); exitFullscreen(); }}
-              className="p-2 rounded-full text-white/90 hover:text-white hover:bg-white/10 transition-colors"
-              title="Exit Fullscreen (Esc)"
-            >
-              <Minimize className="w-5 h-5" />
-            </button>
           </div>
         </div>
 
@@ -1097,15 +1080,6 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                   id="jamflow-yt-hidden"
                   className={isFullscreen ? 'w-full h-full max-w-full max-h-full object-contain aspect-video' : 'w-full h-full'}
                 />
-                {!isFullscreen && viewMode === 'video' && (
-                  <button
-                    onClick={enterFullscreen}
-                    className="absolute top-2 right-2 z-30 p-1.5 text-white/80 hover:text-white bg-black/60 backdrop-blur-md border border-white/10 rounded-xl transition-all shadow"
-                    title="Fullscreen"
-                  >
-                    <Maximize className="w-3.5 h-3.5" />
-                  </button>
-                )}
                 {isFullscreen && renderYouTubeHUD()}
               </div>
 
@@ -1356,15 +1330,6 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
             id="jamflow-yt-hidden"
             className={isFullscreen ? 'w-full h-full max-w-full max-h-full object-contain aspect-video' : 'w-full h-full'}
           />
-          {!isFullscreen && viewMode === 'video' && (
-            <button
-              onClick={enterFullscreen}
-              className="absolute top-3 right-3 z-30 p-2 text-white/80 hover:text-white bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/10 rounded-lg transition-all shadow-lg"
-              title="Fullscreen"
-            >
-              <Maximize className="w-4 h-4" />
-            </button>
-          )}
           {isFullscreen && renderYouTubeHUD()}
         </div>
 
