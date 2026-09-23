@@ -212,7 +212,7 @@ export const QueueList: React.FC<QueueListProps> = ({
                     {/* Mobile popup */}
                     {isMenuOpen && (
                       <div
-                        className="sm:hidden absolute right-2 top-full mt-1 z-30 flex flex-col gap-1 p-1.5 rounded-xl bg-[#151624] border border-[#2D2E42] shadow-2xl animate-in fade-in zoom-in-95 duration-100 min-w-[130px]"
+                        className="sm:hidden absolute right-2 top-full mt-1 z-30 flex flex-col gap-1 p-1.5 rounded-xl bg-[#151624] border border-[#2D2E42] shadow-2xl popover-enter min-w-[130px]"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {canControl && (

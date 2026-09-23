@@ -63,3 +63,66 @@ button, input, textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(217, 70, 239, 0.55);
 }
+
+/* ── Calming, subtle popup & modal reveal animations ── */
+@keyframes popupBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popupPanelReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes popoverReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.popup-backdrop-enter {
+  animation: popupBackdropFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity;
+}
+
+.popup-panel-enter,
+.modal-center-enter {
+  animation: popupPanelReveal 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  transform-origin: center center;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px -5px rgba(139, 92, 246, 0.12);
+}
+
+.popover-enter {
+  animation: popoverReveal 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  transform-origin: top right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup-backdrop-enter,
+  .popup-panel-enter,
+  .modal-center-enter,
+  .popover-enter {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+

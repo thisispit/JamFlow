@@ -1,21 +1,50 @@
-const DEMON_SLAYER_NAMES = [
-  'Tanjiro Kamado',
-  'Nezuko Kamado',
-  'Zenitsu Agatsuma',
-  'Inosuke Hashibira',
-  'Giyu Tomioka',
-  'Kyojuro Rengoku',
-  'Shinobu Kocho',
-  'Mitsuri Kanroji',
-  'Muichiro Tokito',
-  'Tengen Uzui',
-  'Sanemi Shinazugawa',
-  'Gyomei Himejima',
-  'Obanai Iguro',
-  'Akaza',
-  'Kokushibo',
+export const FAMOUS_ANIME_NAMES = [
+  'Gojo',
+  'Luffy',
+  'Zoro',
+  'Naruto',
+  'Sasuke',
+  'Kakashi',
+  'Itachi',
+  'Goku',
+  'Vegeta',
+  'Levi',
+  'Eren',
+  'Mikasa',
+  'Sukuna',
+  'Tanjiro',
+  'Nezuko',
+  'Zenitsu',
+  'Rengoku',
+  'Giyu',
+  'Saitama',
+  'Killua',
+  'Gon',
+  'Ichigo',
+  'Aizen',
+  'Jinwoo',
+  'Lelouch',
+  'Light',
+  'L',
+  'Mustang',
+  'Deku',
+  'Bakugo',
+  'Todoroki',
+  'Sanji',
+  'Ace',
+  'Shanks',
+  'Law',
+  'Spike',
+  'Kaneki',
+  'Megumi',
+  'Nanami',
 ];
 
+export function getRandomAnimeName(): string {
+  return FAMOUS_ANIME_NAMES[Math.floor(Math.random() * FAMOUS_ANIME_NAMES.length)];
+}
+
+// Backwards compatibility alias
 export function getRandomDemonSlayerName(): string {
-  return DEMON_SLAYER_NAMES[Math.floor(Math.random() * DEMON_SLAYER_NAMES.length)];
+  return getRandomAnimeName();
 }

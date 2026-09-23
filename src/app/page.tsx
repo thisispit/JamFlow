@@ -3,10 +3,19 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Radio, ArrowRight, X, Music2, Users, Sparkles,
+  Radio, ArrowRight, X, Music2, Users, Sparkles, Shuffle,
 } from 'lucide-react';
 import { getSocket } from '@/lib/socket';
-import { getRandomDemonSlayerName } from '@/lib/animeNames';
+import { getRandomAnimeName } from '@/lib/animeNames';
+
+const ROOM_NAME_SUGGESTIONS = [
+  { name: 'Chill', emoji: '🌴' },
+  { name: 'Work', emoji: '💻' },
+  { name: 'Study', emoji: '📚' },
+  { name: 'Gaming', emoji: '🎮' },
+  { name: 'Lofi', emoji: '🎧' },
+  { name: 'Late Night', emoji: '🌙' },
+];
 
 /* ─────────────────────────────────────────────────────────────────
    Vinyl SVG — authentic grooves + label + iridescent neon sheen
@@ -346,30 +355,32 @@ interface ModalProps {
   createRoomName: string; setCreateRoomName: (v: string) => void;
   isCreating: boolean; createError: string;
   onCreateRoom: (e: React.FormEvent) => void;
+  onRollCreateUsername: () => void;
   // join
   joinCode: string; setJoinCode: (v: string) => void;
   joinUsername: string; setJoinUsername: (v: string) => void;
   isJoining: boolean; joinError: string;
   onJoinRoom: (e: React.FormEvent) => void;
+  onRollJoinUsername: () => void;
   onSwitchMode: (mode: 'create' | 'join') => void;
 }
 
 function Modal({
   mode, onClose,
   createUsername, setCreateUsername, createRoomName, setCreateRoomName,
-  isCreating, createError, onCreateRoom,
+  isCreating, createError, onCreateRoom, onRollCreateUsername,
   joinCode, setJoinCode, joinUsername, setJoinUsername,
-  isJoining, joinError, onJoinRoom,
+  isJoining, joinError, onJoinRoom, onRollJoinUsername,
   onSwitchMode,
 }: ModalProps) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 popup-backdrop-enter"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Panel */}
       <div
-        className="relative w-full max-w-sm rounded-3xl border border-white/10 overflow-hidden modal-center-enter shadow-2xl"
+        className="relative w-full max-w-sm rounded-3xl border border-white/10 overflow-hidden popup-panel-enter shadow-2xl"
         style={{ background: '#0F101A' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -419,32 +430,84 @@ function Modal({
           {/* Create form */}
           {mode === 'create' && (
             <form onSubmit={onCreateRoom} className="space-y-3.5">
+              {/* Anime Character Nickname */}
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-400 mb-1.5 uppercase tracking-wider">
-                  Your Username
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Alex"
-                  required
-                  autoFocus
-                  value={createUsername}
-                  onChange={(e) => setCreateUsername(e.target.value)}
-                  className="w-full bg-zinc-950/90 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-[#8B5CF6] transition-colors"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-[#C084FC]" />
+                    <span>Your Anime Nickname</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={onRollCreateUsername}
+                    className="text-[11px] text-[#C084FC] hover:text-[#E879F9] flex items-center gap-1 font-medium transition-colors active:scale-95"
+                    title="Roll another famous character"
+                  >
+                    <Shuffle className="w-3 h-3" /> Roll
+                  </button>
+                </div>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder="Famous Anime Character"
+                    required
+                    value={createUsername}
+                    onChange={(e) => setCreateUsername(e.target.value)}
+                    className="w-full bg-zinc-950/90 border border-zinc-800 rounded-xl pl-4 pr-11 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-[#8B5CF6] transition-colors font-medium"
+                  />
+                  <button
+                    type="button"
+                    onClick={onRollCreateUsername}
+                    className="absolute right-2.5 p-1 rounded-lg text-zinc-400 hover:text-[#C084FC] hover:bg-white/[0.05] transition-colors"
+                    title="Roll another famous character"
+                  >
+                    <Shuffle className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
+
+              {/* Room Name */}
               <div>
                 <label className="block text-[11px] font-semibold text-zinc-400 mb-1.5 uppercase tracking-wider">
                   Room Name <span className="text-zinc-600 normal-case font-normal">(optional)</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Synthwave Session"
+                  placeholder="e.g. Chill Session"
+                  autoFocus
                   value={createRoomName}
                   onChange={(e) => setCreateRoomName(e.target.value)}
                   className="w-full bg-zinc-950/90 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-[#8B5CF6] transition-colors"
                 />
+
+                {/* Mood Presets */}
+                <div className="mt-2.5">
+                  <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider block mb-1.5">
+                    Tap to pick mood:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ROOM_NAME_SUGGESTIONS.map((item) => {
+                      const isSelected = createRoomName.toLowerCase() === item.name.toLowerCase();
+                      return (
+                        <button
+                          key={item.name}
+                          type="button"
+                          onClick={() => setCreateRoomName(item.name)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all active:scale-95 flex items-center gap-1 ${
+                            isSelected
+                              ? 'bg-[#8B5CF6]/30 border-[#8B5CF6] text-white shadow-sm shadow-[#8B5CF6]/30'
+                              : 'bg-white/[0.04] border-white/[0.06] text-zinc-400 hover:text-zinc-200 hover:border-white/15'
+                          }`}
+                        >
+                          <span>{item.emoji}</span>
+                          <span>{item.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
+
               {createError && <p className="text-xs text-rose-400">{createError}</p>}
               <button
                 type="submit"
@@ -477,17 +540,38 @@ function Modal({
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-400 mb-1.5 uppercase tracking-wider">
-                  Your Username
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Jordan"
-                  required
-                  value={joinUsername}
-                  onChange={(e) => setJoinUsername(e.target.value)}
-                  className="w-full bg-zinc-950/90 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-[#8B5CF6] transition-colors"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-[#C084FC]" />
+                    <span>Your Anime Nickname</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={onRollJoinUsername}
+                    className="text-[11px] text-[#C084FC] hover:text-[#E879F9] flex items-center gap-1 font-medium transition-colors active:scale-95"
+                    title="Roll another famous character"
+                  >
+                    <Shuffle className="w-3 h-3" /> Roll
+                  </button>
+                </div>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder="Famous Anime Character"
+                    required
+                    value={joinUsername}
+                    onChange={(e) => setJoinUsername(e.target.value)}
+                    className="w-full bg-zinc-950/90 border border-zinc-800 rounded-xl pl-4 pr-11 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-[#8B5CF6] transition-colors font-medium"
+                  />
+                  <button
+                    type="button"
+                    onClick={onRollJoinUsername}
+                    className="absolute right-2.5 p-1 rounded-lg text-zinc-400 hover:text-[#C084FC] hover:bg-white/[0.05] transition-colors"
+                    title="Roll another famous character"
+                  >
+                    <Shuffle className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
               {joinError && <p className="text-xs text-rose-400">{joinError}</p>}
               <button
@@ -526,9 +610,28 @@ export default function HomePage() {
   const [showModal, setShowModal] = useState<'create' | 'join' | null>(null);
 
   React.useEffect(() => {
-    setCreateUsername(getRandomDemonSlayerName());
-    setJoinUsername(getRandomDemonSlayerName());
+    setCreateUsername(getRandomAnimeName());
+    setJoinUsername(getRandomAnimeName());
   }, []);
+
+  const handleQuickCreate = (presetName: string) => {
+    const user = createUsername.trim() || getRandomAnimeName();
+    if (!createUsername.trim()) setCreateUsername(user);
+    setCreateRoomName(presetName);
+    setIsCreating(true);
+    setCreateError('');
+    const socket = getSocket();
+    socket.emit('room:create', { username: user, roomName: presetName }, (res) => {
+      setIsCreating(false);
+      if (res.success && res.roomId) {
+        sessionStorage.setItem('jamflow_username', user);
+        router.push(`/${res.roomId}`);
+      } else {
+        setCreateError(res.error || 'Failed to create room');
+        setShowModal('create');
+      }
+    });
+  };
 
   const handleCreateRoom = (e: React.FormEvent) => {
     e.preventDefault();
@@ -641,25 +744,71 @@ export default function HomePage() {
               Drop any YouTube link and experience music together in millisecond harmony — zero drift, video toggle, pure sync.
             </p>
 
-            {/* Action Buttons */}
-            <div className="mt-6 flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto">
-              <button
-                onClick={() => setShowModal('create')}
-                className="group relative overflow-hidden w-full sm:w-auto px-7 py-3 rounded-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#D946EF] text-white font-semibold text-sm shadow-[0_0_25px_rgba(139,92,246,0.4)] hover:shadow-[0_0_35px_rgba(217,70,239,0.55)] flex items-center justify-center gap-2.5 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
-                <Radio className="w-4 h-4 text-white" />
-                <span className="relative tracking-wide">Start Jamming</span>
-                <ArrowRight className="relative w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
+            {/* Action Section: CTAs + One-Tap Quick Launch Dock */}
+            <div className="mt-6 flex flex-col gap-3.5 w-full max-w-lg">
+              {/* Primary Buttons */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+                <button
+                  onClick={() => setShowModal('create')}
+                  className="group relative overflow-hidden w-full sm:flex-1 px-6 py-3 rounded-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#D946EF] text-white font-semibold text-sm shadow-[0_0_25px_rgba(139,92,246,0.35)] hover:shadow-[0_0_35px_rgba(217,70,239,0.5)] flex items-center justify-center gap-2.5 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+                  <Radio className="w-4 h-4 text-white" />
+                  <span className="relative tracking-wide">Start Jamming</span>
+                  <ArrowRight className="relative w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
 
-              <button
-                onClick={() => setShowModal('join')}
-                className="group relative w-full sm:w-auto px-7 py-3 rounded-2xl bg-zinc-950 hover:bg-zinc-900 text-zinc-200 hover:text-white font-semibold text-sm border border-zinc-700/80 hover:border-[#8B5CF6]/60 flex items-center justify-center gap-2.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-black/40"
-              >
-                <Users className="w-4 h-4 text-zinc-400 group-hover:text-[#C084FC] transition-colors" />
-                <span>Join a Room</span>
-              </button>
+                <button
+                  onClick={() => setShowModal('join')}
+                  className="group relative w-full sm:w-auto px-6 py-3 rounded-2xl bg-zinc-950/80 hover:bg-zinc-900 text-zinc-200 hover:text-white font-semibold text-sm border border-zinc-700/80 hover:border-[#8B5CF6]/60 flex items-center justify-center gap-2.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-black/40"
+                >
+                  <Users className="w-4 h-4 text-zinc-400 group-hover:text-[#C084FC] transition-colors" />
+                  <span>Join a Room</span>
+                </button>
+              </div>
+
+              {/* Professional Instant Quick Launch Dock */}
+              <div className="p-2 sm:p-2.5 rounded-2xl bg-[#0F101A]/85 border border-white/[0.08] backdrop-blur-xl shadow-xl shadow-black/40">
+                <div className="flex items-center justify-between px-1.5 pb-2 mb-1.5 border-b border-white/[0.05]">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-[#C084FC]" />
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">
+                      Quick Rooms
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-zinc-500 font-mono">as</span>
+                    <button
+                      type="button"
+                      onClick={() => setCreateUsername(getRandomAnimeName())}
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.06] text-[10px] font-mono font-semibold text-[#C084FC] hover:text-white transition-all active:scale-95"
+                      title="Roll another anime character"
+                    >
+                      <span>{createUsername || 'Hero'}</span>
+                      <Shuffle className="w-2.5 h-2.5 opacity-60" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                  {ROOM_NAME_SUGGESTIONS.map((s) => (
+                    <button
+                      key={s.name}
+                      type="button"
+                      onClick={() => handleQuickCreate(s.name)}
+                      disabled={isCreating}
+                      className="group flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-white/[0.025] hover:bg-gradient-to-b hover:from-[#8B5CF6]/20 hover:to-transparent border border-white/[0.04] hover:border-[#8B5CF6]/40 transition-all duration-200 active:scale-95 text-center disabled:opacity-50"
+                    >
+                      <span className="text-base sm:text-lg mb-0.5 group-hover:scale-110 transition-transform">
+                        {s.emoji}
+                      </span>
+                      <span className="text-[11px] font-medium text-zinc-300 group-hover:text-white truncate max-w-full">
+                        {s.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Clean metrics row — concise & minimal */}
@@ -780,9 +929,11 @@ export default function HomePage() {
           createUsername={createUsername} setCreateUsername={setCreateUsername}
           createRoomName={createRoomName} setCreateRoomName={setCreateRoomName}
           isCreating={isCreating} createError={createError} onCreateRoom={handleCreateRoom}
+          onRollCreateUsername={() => setCreateUsername(getRandomAnimeName())}
           joinCode={joinCode} setJoinCode={setJoinCode}
           joinUsername={joinUsername} setJoinUsername={setJoinUsername}
           isJoining={isJoining} joinError={joinError} onJoinRoom={handleJoinRoom}
+          onRollJoinUsername={() => setJoinUsername(getRandomAnimeName())}
         />
       )}
 
@@ -826,14 +977,6 @@ export default function HomePage() {
           100% { width: 100%; }
         }
 
-        @keyframes modalCenterIn {
-          from { opacity: 0; transform: scale(0.96); }
-          to   { opacity: 1; transform: scale(1); }
-        }
-        .modal-center-enter {
-          animation: modalCenterIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          will-change: transform, opacity;
-        }
 
         /* ── Hero ambience ── */
         @keyframes floatNote {

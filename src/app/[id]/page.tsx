@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   Radio, Share2, Check, LogOut, Crown, Copy,
   AlertCircle, ListMusic, MessageSquare, MessageCircle, Send,
-  Settings, X, Users, ChevronDown, ChevronUp,
+  Settings, X, Users, ChevronDown, ChevronUp, Shuffle, Sparkles,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -16,7 +16,7 @@ import { YouTubeInput } from '@/components/YouTubeInput';
 import { QueueList } from '@/components/QueueList';
 import { ChatAndReactions } from '@/components/ChatAndReactions';
 import { FloatingReactions } from '@/components/FloatingReactions';
-import { getRandomDemonSlayerName } from '@/lib/animeNames';
+import { getRandomAnimeName } from '@/lib/animeNames';
 
 export default function RoomPage() {
   const params = useParams();
@@ -99,7 +99,7 @@ export default function RoomPage() {
 
   useEffect(() => {
     const saved = sessionStorage.getItem('jamflow_username');
-    setUsername(saved || getRandomDemonSlayerName());
+    setUsername(saved || getRandomAnimeName());
     if (saved) setHasPromptedUser(true);
     else { setHasPromptedUser(false); setIsLoading(false); }
   }, []);
@@ -326,18 +326,31 @@ export default function RoomPage() {
   if (!hasPromptedUser) {
     return (
       <main className="min-h-screen bg-zinc-950 flex items-center justify-center p-5">
-        <div className="w-full max-w-sm p-7 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl text-center">
+        <div className="w-full max-w-sm p-7 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl text-center popup-panel-enter">
           <div className="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center mx-auto mb-5 text-zinc-400">
             <Radio className="w-6 h-6" />
           </div>
           <h2 className="text-lg font-bold text-white mb-1">Join {roomId}</h2>
           <p className="text-zinc-400 text-sm mb-5">Choose a nickname to start listening</p>
           <form onSubmit={e => { e.preventDefault(); if (username.trim()) { setHasPromptedUser(true); joinRoomWithUser(username.trim()); } }} className="space-y-3">
-            <input
-              type="text" placeholder="Your anime name" autoFocus required
-              value={username} onChange={e => setUsername(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-white/30"
-            />
+            <div className="relative flex items-center">
+              <input
+                type="text"
+                placeholder="Famous Anime Character"
+                required
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-4 pr-11 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-[#8B5CF6] font-medium"
+              />
+              <button
+                type="button"
+                onClick={() => setUsername(getRandomAnimeName())}
+                className="absolute right-2.5 p-1.5 rounded-lg text-zinc-400 hover:text-[#C084FC] hover:bg-white/[0.05] transition-colors"
+                title="Roll another famous character"
+              >
+                <Shuffle className="w-4 h-4" />
+              </button>
+            </div>
             <button type="submit" className="w-full py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#D946EF] text-white font-semibold text-sm shadow-lg shadow-[#8B5CF6]/25 hover:opacity-95 transition-all active:scale-[0.98]">
               Enter Room
             </button>
@@ -806,11 +819,11 @@ export default function RoomPage() {
       {/* ── Listeners Center Popup ── */}
       {isListenersOpen && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 popup-backdrop-enter"
           onClick={() => setIsListenersOpen(false)}
         >
           <div
-            className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150"
+            className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 popup-panel-enter"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
@@ -899,10 +912,10 @@ export default function RoomPage() {
       {/* ── Settings Modal ── */}
       {isSettingsOpen && (
         <div
-          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/75 popup-backdrop-enter"
           onClick={e => { if (e.target === e.currentTarget) setIsSettingsOpen(false); }}
         >
-          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150">
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 popup-panel-enter">
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center">
@@ -969,10 +982,10 @@ export default function RoomPage() {
       {/* ── Share Modal ── */}
       {isShareOpen && (
         <div
-          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/75 popup-backdrop-enter"
           onClick={e => { if (e.target === e.currentTarget) setIsShareOpen(false); }}
         >
-          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150">
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 popup-panel-enter">
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center">
