@@ -382,6 +382,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           modestbranding: 1,
           playsinline: 1,
           rel: 0,
+          wmode: 'opaque',
           origin: window.location.origin,
         },
         events: {

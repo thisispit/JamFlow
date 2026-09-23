@@ -180,10 +180,23 @@ export default function RoomPage() {
         try { confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } }); } catch {}
       }
     };
+    const handleUsersUpdated = (users: User[]) => {
+      setRoom(p => p ? { ...p, users } : null);
+      const me = users.find(u => u.id === socket.id);
+      if (me) setCurrentUser(me);
+    };
+    const handleConnect = () => {
+      const savedUser = sessionStorage.getItem('jamflow_username');
+      if (savedUser && roomId) {
+        joinRoomWithUser(savedUser);
+      }
+    };
     const handleReaction = (r: Reaction) => setReactions(p => [...p.slice(-15), r]);
     const handleError = (d: { message: string }) => { setErrorMessage(d.message); setTimeout(() => setErrorMessage(null), 4000); };
 
+    socket.on('connect', handleConnect);
     socket.on('room:state', handleRoomState);
+    socket.on('room:users_updated', handleUsersUpdated);
     socket.on('room:user_joined', handleUserJoined);
     socket.on('room:user_left', handleUserLeft);
     socket.on('room:host_changed', handleHostChanged);
@@ -200,7 +213,9 @@ export default function RoomPage() {
     socket.on('error:notification', handleError);
 
     return () => {
+      socket.off('connect', handleConnect);
       socket.off('room:state', handleRoomState);
+      socket.off('room:users_updated', handleUsersUpdated);
       socket.off('room:user_joined', handleUserJoined);
       socket.off('room:user_left', handleUserLeft);
       socket.off('room:host_changed', handleHostChanged);
@@ -281,6 +296,12 @@ export default function RoomPage() {
   const canControl = room?.settings.isOpenControl || currentUser?.isHost || currentUser?.isDJ || false;
   const canAdd = room?.settings.isOpenQueue || currentUser?.isHost || currentUser?.isDJ || false;
 
+  // Deduplicate users strictly by socket ID and lowercase username
+  const uniqueUsers = (room?.users ?? []).filter((u, idx, arr) =>
+    arr.findIndex(x => x.id === u.id || (u.username && x.username.toLowerCase() === u.username.toLowerCase())) === idx
+  );
+  const activeListenerCount = Math.max(1, uniqueUsers.length);
+
   const queueProps = {
     queue: room?.queue ?? [], currentTrack: room?.currentTrack ?? null,
     currentUser, voteSkip: room?.voteSkip ?? { votedUserIds: [], requiredVotes: 1 },
@@ -288,12 +309,12 @@ export default function RoomPage() {
     onAddTrack: handleAddTrack, onRemoveTrack: handleRemoveTrack,
     onReorder: handleReorder, onSkipTo: handleSkipTo,
     onClearQueue: handleClearQueue, onVoteSkip: handleVoteSkip,
-    userCount: room?.users.length ?? 1,
+    userCount: activeListenerCount,
   };
 
   const chatProps = {
     chat: room?.chat ?? [],
-    users: room?.users ?? [],
+    users: uniqueUsers,
     currentUser,
     onSendMessage: handleSendMessage,
     onSendReaction: handleSendReaction,
@@ -419,7 +440,7 @@ export default function RoomPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D946EF] opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D946EF]" />
             </span>
-            <span>{room.users.length} listening</span>
+            <span>{activeListenerCount} listening</span>
           </button>
 
           {/* Share */}
@@ -456,232 +477,6 @@ export default function RoomPage() {
         </div>
       </header>
 
-      {/* ── Listeners Center Popup ── */}
-      {isListenersOpen && (
-        <div
-          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
-          onClick={() => setIsListenersOpen(false)}
-        >
-          <div
-            className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#D946EF] animate-pulse shadow-[0_0_8px_rgba(217,70,239,0.8)]" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                  Active Listeners ({room.users.length})
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsListenersOpen(false)}
-                className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
-              >
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {room.users.map(u => {
-                const isMe = u.id === currentUser?.id;
-                return (
-                  <div key={u.id} className="flex items-center justify-between py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="w-2 h-2 rounded-full bg-[#D946EF] shrink-0" />
-                      <span className={`text-sm truncate ${isMe ? 'font-bold text-white' : 'text-zinc-300'}`}>
-                        {u.username}{isMe ? ' (You)' : ''}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      {u.isHost ? (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-[10px] font-mono font-semibold text-amber-400 flex items-center gap-1">
-                          <Crown className="w-2.5 h-2.5" /> Host
-                        </span>
-                      ) : (
-                        <>
-                          {currentUser?.isHost && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleDJ(u.id)}
-                                className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition-all active:scale-95 ${
-                                  u.isDJ
-                                    ? 'bg-[#8B5CF6]/20 border-[#8B5CF6]/35 text-[#C084FC] hover:bg-rose-500/15 hover:border-rose-500/25 hover:text-rose-400'
-                                    : 'bg-white/[0.04] border-white/[0.07] text-zinc-500 hover:text-zinc-200 hover:border-[#8B5CF6]/40'
-                                }`}
-                              >
-                                {u.isDJ ? 'DJ ✓' : '+ DJ'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => { if (window.confirm(`Transfer host to ${u.username}?`)) handleTransferHost(u.id); }}
-                                className="p-1 rounded-lg text-zinc-600 hover:text-amber-400 hover:bg-amber-400/10 transition-colors"
-                                title="Transfer Host"
-                              >
-                                <Crown className="w-3.5 h-3.5" />
-                              </button>
-                            </>
-                          )}
-                          {!currentUser?.isHost && u.isDJ && (
-                            <span className="px-2 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/25 text-[10px] font-mono font-semibold text-[#C084FC]">
-                              DJ
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {currentUser?.isHost && (
-              <div className="mt-4 pt-3 border-t border-white/[0.07] flex justify-end">
-                <button
-                  onClick={() => { setIsListenersOpen(false); setIsSettingsOpen(true); }}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-[#C084FC] hover:text-white transition-colors"
-                >
-                  <Settings className="w-3.5 h-3.5" /> Room Settings
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Settings Modal ── */}
-      {isSettingsOpen && (
-        <div
-          className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
-          onClick={e => { if (e.target === e.currentTarget) setIsSettingsOpen(false); }}
-        >
-          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center">
-                  <Settings className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white leading-none">Room Settings</h3>
-                  <p className="text-[11px] text-zinc-500 mt-0.5">Permissions & skipping</p>
-                </div>
-              </div>
-              <button onClick={() => setIsSettingsOpen(false)} className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {!currentUser?.isHost ? (
-              <div className="py-6 text-center text-zinc-500 text-xs">Only the room host can modify settings.</div>
-            ) : (
-              <div className="space-y-3">
-                {/* Playback control */}
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-zinc-200">Playback Controls</span>
-                    <span className="text-[10px] font-mono text-zinc-500">{room.settings.isOpenControl ? 'Everyone' : 'Host & DJs'}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/[0.03] border border-white/[0.05] rounded-xl">
-                    <button type="button" onClick={() => handleUpdateSettings({ isOpenControl: false })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${!room.settings.isOpenControl ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Host & DJs</button>
-                    <button type="button" onClick={() => handleUpdateSettings({ isOpenControl: true })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${room.settings.isOpenControl ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Everyone</button>
-                  </div>
-                </div>
-
-                {/* Queue permission */}
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-zinc-200">Queue Permission</span>
-                    <span className="text-[10px] font-mono text-zinc-500">{room.settings.isOpenQueue ? 'Everyone' : 'Host & DJs'}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/[0.03] border border-white/[0.05] rounded-xl">
-                    <button type="button" onClick={() => handleUpdateSettings({ isOpenQueue: true })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${room.settings.isOpenQueue ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Everyone</button>
-                    <button type="button" onClick={() => handleUpdateSettings({ isOpenQueue: false })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${!room.settings.isOpenQueue ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Host & DJs</button>
-                  </div>
-                </div>
-
-                {/* Skip threshold */}
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-zinc-200">Vote Skip Threshold</span>
-                    <span className="text-[10px] font-mono text-[#C084FC] font-bold">{room.settings.skipThresholdPercent}%</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {[33, 50, 66].map(pct => (
-                      <button key={pct} type="button" onClick={() => handleUpdateSettings({ skipThresholdPercent: pct })} className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all ${room.settings.skipThresholdPercent === pct ? 'bg-[#8B5CF6]/25 border-[#8B5CF6] text-[#C084FC]' : 'bg-white/[0.03] border-white/[0.05] text-zinc-500 hover:text-white hover:border-white/20'}`}>
-                        {pct}%
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Share Modal ── */}
-      {isShareOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
-          onClick={e => { if (e.target === e.currentTarget) setIsShareOpen(false); }}
-        >
-          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center">
-                  <Share2 className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white leading-none">Share Room</h3>
-                  <p className="text-[11px] text-zinc-500 mt-0.5">Invite friends to listen in sync</p>
-                </div>
-              </div>
-              <button onClick={() => setIsShareOpen(false)} className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Room code */}
-            <div className="mb-4 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-between">
-              <div>
-                <div className="text-[10px] uppercase font-mono tracking-wider text-zinc-500">Room Code</div>
-                <div className="text-lg font-mono font-bold text-white tracking-widest mt-0.5">{room.id}</div>
-              </div>
-              <button onClick={() => copyToClipboard(room.id, 'code')} className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-zinc-200 flex items-center gap-1.5 transition-all border border-white/[0.07] active:scale-95">
-                {copiedField === 'code' ? <><Check className="w-3.5 h-3.5 text-emerald-400" /><span className="text-emerald-400">Copied</span></> : <><Copy className="w-3.5 h-3.5 text-zinc-400" /><span>Copy</span></>}
-              </button>
-            </div>
-
-            {/* Invite link */}
-            <div className="mb-4">
-              <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Invite Link</label>
-              <div className="flex items-center gap-2">
-                <input type="text" readOnly value={getShareUrl(room.id)} className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.07] rounded-xl px-3.5 py-2.5 text-xs font-mono text-zinc-300 truncate focus:outline-none" onClick={e => (e.target as HTMLInputElement).select()} />
-                <button onClick={() => copyToClipboard(getShareUrl(room.id), 'link')} className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] hover:opacity-95 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#8B5CF6]/20 active:scale-95">
-                  {copiedField === 'link' ? <><Check className="w-3.5 h-3.5" /><span>Copied</span></> : <><Copy className="w-3.5 h-3.5" /><span>Copy</span></>}
-                </button>
-              </div>
-            </div>
-
-            {/* Social share */}
-            <div className="pt-3 border-t border-white/[0.07] grid grid-cols-2 gap-2">
-              <button
-                onClick={() => { const t = `Join my JamFlow room! Code: ${room.id}\n`; const u = getShareUrl(room.id); window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(t + u)}`, '_blank'); }}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/25 text-[#25D366] text-xs font-medium transition-all active:scale-95"
-              >
-                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-              </button>
-              <button
-                onClick={() => { const t = `Join my JamFlow room: ${room.id}`; const u = getShareUrl(room.id); window.open(`https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t)}`, '_blank'); }}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/25 text-[#0088cc] text-xs font-medium transition-all active:scale-95"
-              >
-                <Send className="w-3.5 h-3.5" /> Telegram
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Body ── */}
       <div className="flex-1 flex overflow-hidden min-h-0">
 
@@ -717,7 +512,7 @@ export default function RoomPage() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D946EF]" />
                 </span>
                 <span className="text-xs font-semibold text-zinc-300">
-                  {room.users.length} listening
+                  {activeListenerCount} listening
                 </span>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
@@ -932,9 +727,9 @@ export default function RoomPage() {
                   serverPosition={serverPosition}
                   lastSyncTimestamp={lastSyncTimestamp}
                   canControl={canControl}
-                  users={room.users}
+                  users={uniqueUsers}
                   currentUser={currentUser}
-                  userCount={room.users.length}
+                  userCount={activeListenerCount}
                   hasQueue={room.queue.length > 0}
                   onSkipNext={() => { if (room.queue.length > 0) handleSkipTo(room.queue[0].id); }}
                   onPlay={handlePlay}
@@ -1007,6 +802,232 @@ export default function RoomPage() {
           </div>
         )}
       </div>
+
+      {/* ── Listeners Center Popup ── */}
+      {isListenersOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
+          onClick={() => setIsListenersOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#D946EF] animate-pulse shadow-[0_0_8px_rgba(217,70,239,0.8)]" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                  Active Listeners ({activeListenerCount})
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsListenersOpen(false)}
+                className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {uniqueUsers.map(u => {
+                const isMe = u.id === currentUser?.id;
+                return (
+                  <div key={u.id} className="flex items-center justify-between py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-[#D946EF] shrink-0" />
+                      <span className={`text-sm truncate ${isMe ? 'font-bold text-white' : 'text-zinc-300'}`}>
+                        {u.username}{isMe ? ' (You)' : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      {u.isHost ? (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-[10px] font-mono font-semibold text-amber-400 flex items-center gap-1">
+                          <Crown className="w-2.5 h-2.5" /> Host
+                        </span>
+                      ) : (
+                        <>
+                          {currentUser?.isHost && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleDJ(u.id)}
+                                className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition-all active:scale-95 ${
+                                  u.isDJ
+                                    ? 'bg-[#8B5CF6]/20 border-[#8B5CF6]/35 text-[#C084FC] hover:bg-rose-500/15 hover:border-rose-500/25 hover:text-rose-400'
+                                    : 'bg-white/[0.04] border-white/[0.07] text-zinc-500 hover:text-zinc-200 hover:border-[#8B5CF6]/40'
+                                }`}
+                              >
+                                {u.isDJ ? 'DJ ✓' : '+ DJ'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { if (window.confirm(`Transfer host to ${u.username}?`)) handleTransferHost(u.id); }}
+                                className="p-1 rounded-lg text-zinc-600 hover:text-amber-400 hover:bg-amber-400/10 transition-colors"
+                                title="Transfer Host"
+                              >
+                                <Crown className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                          {!currentUser?.isHost && u.isDJ && (
+                            <span className="px-2 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/25 text-[10px] font-mono font-semibold text-[#C084FC]">
+                              DJ
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {currentUser?.isHost && (
+              <div className="mt-4 pt-3 border-t border-white/[0.07] flex justify-end">
+                <button
+                  onClick={() => { setIsListenersOpen(false); setIsSettingsOpen(true); }}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[#C084FC] hover:text-white transition-colors"
+                >
+                  <Settings className="w-3.5 h-3.5" /> Room Settings
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Settings Modal ── */}
+      {isSettingsOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
+          onClick={e => { if (e.target === e.currentTarget) setIsSettingsOpen(false); }}
+        >
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center">
+                  <Settings className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white leading-none">Room Settings</h3>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">Permissions & skipping</p>
+                </div>
+              </div>
+              <button onClick={() => setIsSettingsOpen(false)} className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {!currentUser?.isHost ? (
+              <div className="py-6 text-center text-zinc-500 text-xs">Only the room host can modify settings.</div>
+            ) : (
+              <div className="space-y-3">
+                {/* Playback control */}
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-zinc-200">Playback Controls</span>
+                    <span className="text-[10px] font-mono text-zinc-500">{room.settings.isOpenControl ? 'Everyone' : 'Host & DJs'}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/[0.03] border border-white/[0.05] rounded-xl">
+                    <button type="button" onClick={() => handleUpdateSettings({ isOpenControl: false })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${!room.settings.isOpenControl ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Host & DJs</button>
+                    <button type="button" onClick={() => handleUpdateSettings({ isOpenControl: true })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${room.settings.isOpenControl ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Everyone</button>
+                  </div>
+                </div>
+
+                {/* Queue permission */}
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-zinc-200">Queue Permission</span>
+                    <span className="text-[10px] font-mono text-zinc-500">{room.settings.isOpenQueue ? 'Everyone' : 'Host & DJs'}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/[0.03] border border-white/[0.05] rounded-xl">
+                    <button type="button" onClick={() => handleUpdateSettings({ isOpenQueue: true })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${room.settings.isOpenQueue ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Everyone</button>
+                    <button type="button" onClick={() => handleUpdateSettings({ isOpenQueue: false })} className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${!room.settings.isOpenQueue ? 'bg-[#8B5CF6] text-white' : 'text-zinc-500 hover:text-white'}`}>Host & DJs</button>
+                  </div>
+                </div>
+
+                {/* Skip threshold */}
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-zinc-200">Vote Skip Threshold</span>
+                    <span className="text-[10px] font-mono text-[#C084FC] font-bold">{room.settings.skipThresholdPercent}%</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[33, 50, 66].map(pct => (
+                      <button key={pct} type="button" onClick={() => handleUpdateSettings({ skipThresholdPercent: pct })} className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all ${room.settings.skipThresholdPercent === pct ? 'bg-[#8B5CF6]/25 border-[#8B5CF6] text-[#C084FC]' : 'bg-white/[0.03] border-white/[0.05] text-zinc-500 hover:text-white hover:border-white/20'}`}>
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Share Modal ── */}
+      {isShareOpen && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150"
+          onClick={e => { if (e.target === e.currentTarget) setIsShareOpen(false); }}
+        >
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#121320] border border-white/[0.09] p-5 shadow-2xl text-zinc-100 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#D946EF] flex items-center justify-center">
+                  <Share2 className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white leading-none">Share Room</h3>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">Invite friends to listen in sync</p>
+                </div>
+              </div>
+              <button onClick={() => setIsShareOpen(false)} className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Room code */}
+            <div className="mb-4 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-between">
+              <div>
+                <div className="text-[10px] uppercase font-mono tracking-wider text-zinc-500">Room Code</div>
+                <div className="text-lg font-mono font-bold text-white tracking-widest mt-0.5">{room.id}</div>
+              </div>
+              <button onClick={() => copyToClipboard(room.id, 'code')} className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-zinc-200 flex items-center gap-1.5 transition-all border border-white/[0.07] active:scale-95">
+                {copiedField === 'code' ? <><Check className="w-3.5 h-3.5 text-emerald-400" /><span className="text-emerald-400">Copied</span></> : <><Copy className="w-3.5 h-3.5 text-zinc-400" /><span>Copy</span></>}
+              </button>
+            </div>
+
+            {/* Invite link */}
+            <div className="mb-4">
+              <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Invite Link</label>
+              <div className="flex items-center gap-2">
+                <input type="text" readOnly value={getShareUrl(room.id)} className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.07] rounded-xl px-3.5 py-2.5 text-xs font-mono text-zinc-300 truncate focus:outline-none" onClick={e => (e.target as HTMLInputElement).select()} />
+                <button onClick={() => copyToClipboard(getShareUrl(room.id), 'link')} className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] hover:opacity-95 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#8B5CF6]/20 active:scale-95">
+                  {copiedField === 'link' ? <><Check className="w-3.5 h-3.5" /><span>Copied</span></> : <><Copy className="w-3.5 h-3.5" /><span>Copy</span></>}
+                </button>
+              </div>
+            </div>
+
+            {/* Social share */}
+            <div className="pt-3 border-t border-white/[0.07] grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { const t = `Join my JamFlow room! Code: ${room.id}\n`; const u = getShareUrl(room.id); window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(t + u)}`, '_blank'); }}
+                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/25 text-[#25D366] text-xs font-medium transition-all active:scale-95"
+              >
+                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+              </button>
+              <button
+                onClick={() => { const t = `Join my JamFlow room: ${room.id}`; const u = getShareUrl(room.id); window.open(`https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t)}`, '_blank'); }}
+                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/25 text-[#0088cc] text-xs font-medium transition-all active:scale-95"
+              >
+                <Send className="w-3.5 h-3.5" /> Telegram
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

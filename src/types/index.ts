@@ -103,6 +103,7 @@ export interface ClientToServerEvents {
 
 export interface ServerToClientEvents {
   'room:state': (room: Room) => void;
+  'room:users_updated': (users: User[]) => void;
   'room:user_joined': (user: User) => void;
   'room:user_left': (data: { userId: string; username: string; newHostId?: string }) => void;
   'room:host_changed': (data: { hostId: string; hostUsername: string }) => void;

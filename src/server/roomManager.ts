@@ -89,18 +89,33 @@ export class RoomManager {
       return { error: 'Room not found. Please check the code and try again.' };
     }
 
-    // Check if user is already in the room
-    const existingIndex = room.users.findIndex((u) => u.id === socketId);
+    // Check if user is already in the room (by socketId or matching username)
+    const cleanUsername = username.trim();
+    const existingIndex = room.users.findIndex(
+      (u) => u.id === socketId || (cleanUsername && u.username.toLowerCase() === cleanUsername.toLowerCase())
+    );
     let user: User;
+    let isReconnecting = false;
 
     if (existingIndex !== -1) {
+      isReconnecting = true;
       user = room.users[existingIndex];
-      user.username = username.trim() || user.username;
+      // Clean up old socket mapping if socketId changed
+      if (user.id !== socketId) {
+        this.socketMap.delete(user.id);
+        const oldId = user.id;
+        user.id = socketId;
+        // If this user was host, update room.hostId to new socketId
+        if (room.hostId === oldId) {
+          room.hostId = socketId;
+        }
+      }
+      user.username = cleanUsername || user.username;
     } else {
       user = {
         id: socketId,
-        username: username.trim() || `Jammer ${room.users.length + 1}`,
-        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username || socketId)}`,
+        username: cleanUsername || `Jammer ${room.users.length + 1}`,
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUsername || socketId)}`,
         isHost: room.users.length === 0, // Fallback if host left
         isDJ: room.users.length === 0,
         joinedAt: Date.now(),
@@ -114,18 +129,20 @@ export class RoomManager {
     this.socketMap.set(socketId, { roomId: room.id, userId: user.id });
     this.updateVoteSkipThreshold(room);
 
-    // Add system message
-    const joinMsg: ChatMessage = {
-      id: `sys-${Date.now()}-${Math.random()}`,
-      userId: 'system',
-      username: 'JamFlow Bot',
-      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=jamflow-bot',
-      content: `${user.username} joined the jam! 👋`,
-      timestamp: Date.now(),
-      isSystem: true,
-    };
-    room.chat.push(joinMsg);
-    if (room.chat.length > 100) room.chat.shift();
+    // Add system message only for genuinely new participants (not reconnections)
+    if (!isReconnecting) {
+      const joinMsg: ChatMessage = {
+        id: `sys-${Date.now()}-${Math.random()}`,
+        userId: 'system',
+        username: 'JamFlow Bot',
+        avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=jamflow-bot',
+        content: `${user.username} joined the jam! 👋`,
+        timestamp: Date.now(),
+        isSystem: true,
+      };
+      room.chat.push(joinMsg);
+      if (room.chat.length > 100) room.chat.shift();
+    }
 
     return { room, user };
   }

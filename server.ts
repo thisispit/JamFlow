@@ -86,7 +86,8 @@ const runServer = (handle?: any) => {
         socket.join(room.id);
         console.log(`[Room Joined] User ${user.username} joined room ${room.id}`);
 
-        // Notify others in room
+        // Broadcast authoritative users list to everyone in room
+        io.to(room.id).emit('room:users_updated', room.users);
         socket.to(room.id).emit('room:user_joined', user);
 
         // Send recent chat message to room
@@ -453,6 +454,8 @@ const runServer = (handle?: any) => {
       username: departedUser.username,
       newHostId: newHost ? newHost.id : undefined,
     });
+    // Broadcast authoritative updated users list to all remaining room members
+    io.to(room.id).emit('room:users_updated', room.users);
 
     if (newHost) {
       io.to(room.id).emit('room:host_changed', {
