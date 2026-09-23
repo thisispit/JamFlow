@@ -418,7 +418,9 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         const cur = p.getCurrentTime?.() ?? 0;
         const dur = p.getDuration?.() ?? 0;
         setCurrentTime(cur);
-        if (dur > 0) setDuration(dur);
+        if (dur > 0) {
+          setDuration(prev => (prev !== dur ? dur : prev));
+        }
 
         // Only evaluate drift if actively playing and NOT currently buffering
         if (playbackState === 'playing' && playerState === S.PLAYING && !isBuffering && !isInternalActionRef.current) {
@@ -745,51 +747,23 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         {/* Regular Non-Fullscreen Mobile Player */}
         {!isFullscreen && (
           <div className="relative z-10 flex flex-col items-center w-full pt-2 pb-1 px-3">
-            {/* Full-bleed Album Art Background (Covers whole music area till controls, NO border) */}
+            {/* Subtle ambient glow for mobile (pure CSS, zero repaint lag) */}
             {viewMode === 'song' && (
-              <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                {currentTrack?.thumbnail ? (
-                  <>
-                    {/* Ambient color blur glow */}
-                    <img
-                      src={currentTrack.thumbnail}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-cover scale-125 blur-xl opacity-30"
-                    />
-                    {/* Artwork image - visible and recognizable */}
-                    <img
-                      src={currentTrack.thumbnail}
-                      alt={currentTrack.title}
-                      className="absolute inset-0 w-full h-full object-cover object-center scale-105 opacity-70"
-                    />
-                    {/* Top gradient for mode switcher clarity */}
-                    <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#0C0D15] via-[#0C0D15]/60 to-transparent" />
-                    {/* Bottom midnight gradient blur so title, artist, scrubber and controls are 100% visible */}
-                    <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#0C0D15] via-[#0C0D15]/85 via-45% to-transparent backdrop-blur-[2px]" />
-                  </>
-                ) : (
-                  <>
-                    {/* Light accent color background blur when nothing is playing */}
-                    <div
-                      className="absolute inset-0 w-full h-full scale-125 blur-3xl opacity-35 pointer-events-none"
-                      style={{
-                        background: 'radial-gradient(ellipse at 50% 35%, rgba(139, 92, 246, 0.35) 0%, rgba(217, 70, 239, 0.18) 45%, transparent 70%)',
-                      }}
-                    />
-                    {/* Top gradient */}
-                    <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#0C0D15] via-[#0C0D15]/60 to-transparent pointer-events-none" />
-                    {/* Bottom gradient blur */}
-                    <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#0C0D15] via-[#0C0D15]/85 via-45% to-transparent backdrop-blur-[2px] pointer-events-none" />
-                  </>
-                )}
+              <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-40">
+                <div
+                  className="w-full h-full"
+                  style={{
+                    background: 'radial-gradient(circle at 50% 30%, rgba(139, 92, 246, 0.18) 0%, transparent 65%)',
+                  }}
+                />
               </div>
             )}
 
             {/* Mode switcher: AUDIO / VIDEO */}
-            <div className="relative z-10 mb-2.5 inline-flex items-center p-0.5 rounded-full bg-white/[0.06] backdrop-blur-xl border border-white/[0.08] shadow-inner">
+            <div className="relative z-10 mb-1.5 inline-flex items-center p-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] shadow-inner">
               <button
                 onClick={() => handleToggleViewMode('song')}
-                className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all ${
                   viewMode === 'song'
                     ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
                     : 'text-zinc-400 hover:text-white'
@@ -800,7 +774,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               </button>
               <button
                 onClick={() => handleToggleViewMode('video')}
-                className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all ${
                   viewMode === 'video'
                     ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-md shadow-[#8B5CF6]/30'
                     : 'text-zinc-400 hover:text-white'
@@ -896,7 +870,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               </div>
             </div>
 
-            {/* Controls Row */}
+            {/* Controls Row with Merged Sync/Synced Button */}
             <div className="relative z-10 w-full max-w-xs flex items-center justify-between px-1 mt-2 pb-1">
               <button
                 onClick={handleToggleMute}
@@ -907,14 +881,34 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               </button>
 
               <div className="flex items-center gap-3">
+                {/* MERGED Sync + Synced button */}
                 <button
-                  onClick={handleResync}
-                  title="Sync with Host"
-                  className={`w-10 h-10 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center transition-all active:scale-95 shadow-sm ${
-                    isSyncing ? 'text-amber-400' : 'text-zinc-400 hover:text-white'
+                  onClick={() => {
+                    setShowDrift(prev => !prev);
+                    handleResync();
+                  }}
+                  title={isSyncing ? "Syncing with room..." : `Synced (${Math.abs(currentTime - getExpectedServerPosition()).toFixed(2)}s drift) - Tap to resync`}
+                  className={`relative w-10 h-10 rounded-full border flex items-center justify-center transition-all active:scale-95 shadow-sm ${
+                    isSyncing
+                      ? 'bg-[#8B5CF6]/20 border-[#8B5CF6]/50 text-[#C084FC]'
+                      : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.06] text-zinc-400 hover:text-white'
                   }`}
                 >
-                  <RotateCcw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <RotateCcw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-[#D946EF]' : ''}`} />
+                  {/* Status Indicator Dot merged onto the sync button */}
+                  <span className="absolute top-1 right-1 flex h-2 w-2">
+                    {isSyncing ? (
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                    ) : (
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D946EF] shadow-[0_0_6px_rgba(217,70,239,0.9)]" />
+                    )}
+                  </span>
+                  {/* Popover drift badge on tap */}
+                  {showDrift && (
+                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md bg-[#12131F] border border-white/10 text-[10px] font-mono text-zinc-300 shadow-xl whitespace-nowrap z-30">
+                      {isSyncing ? 'Syncing...' : `${Math.abs(currentTime - getExpectedServerPosition()).toFixed(2)}s`}
+                    </span>
+                  )}
                 </button>
 
                 <button
@@ -950,36 +944,6 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 title="Fullscreen"
               >
                 <Maximize className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Simple status: ● SYNCED / ◌ SYNCING */}
-            <div className="relative z-10 mt-2 pb-0.5 flex justify-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDrift(prev => !prev);
-                  handleResync();
-                }}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] transition-all active:scale-95 text-xs font-mono select-none"
-                title="Tap to see sync drift info / resync"
-              >
-                {isSyncing ? (
-                  <>
-                    <span className="w-1.5 h-1.5 rounded-full border border-[#D946EF] border-t-transparent animate-spin" />
-                    <span className="text-[#C084FC] font-semibold tracking-wider text-[11px]">◌ SYNCING</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#D946EF] shadow-[0_0_6px_rgba(217,70,239,0.8)]" />
-                    <span className="text-zinc-400 font-medium tracking-wider text-[11px]">● SYNCED</span>
-                  </>
-                )}
-                {showDrift && (
-                  <span className="text-[10px] text-zinc-500 font-mono ml-1">
-                    ({Math.abs(currentTime - getExpectedServerPosition()).toFixed(2)}s)
-                  </span>
-                )}
               </button>
             </div>
           </div>
@@ -1186,11 +1150,21 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         {/* Center: Main Controls (always centered) */}
         <div className="flex items-center gap-3 justify-self-center">
           <button
-            onClick={handleResync}
-            title="Restart track / Resync"
-            className="p-2 text-zinc-400 hover:text-white transition-colors rounded-full hover:bg-white/5"
+            onClick={() => {
+              setShowDrift(prev => !prev);
+              handleResync();
+            }}
+            title={isSyncing ? "Syncing with room..." : `Synced (${Math.abs(currentTime - getExpectedServerPosition()).toFixed(2)}s drift) - Tap to resync`}
+            className="relative p-2 text-zinc-400 hover:text-white transition-colors rounded-full hover:bg-white/5 active:scale-95"
           >
-            <RotateCcw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            <RotateCcw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-[#D946EF]' : ''}`} />
+            <span className="absolute top-1 right-1 flex h-2 w-2">
+              {isSyncing ? (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              ) : (
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#D946EF] shadow-[0_0_6px_rgba(217,70,239,0.9)]" />
+              )}
+            </span>
           </button>
 
           {/* Play / Pause button */}

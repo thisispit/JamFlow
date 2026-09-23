@@ -5,6 +5,15 @@ export const metadata: Metadata = {
   title: 'JamFlow — Synchronized Collaborative Listening Platform',
   description:
     'Listen together in real time. Create a room, invite friends, and experience synchronized YouTube music & videos with shared queues and reactions.',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '32x32' },
+    ],
+    apple: [
+      { url: '/favicon.svg' },
+    ],
+  },
 };
 
 export default function RootLayout({

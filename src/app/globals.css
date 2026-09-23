@@ -28,11 +28,16 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.18;
-  background-image: radial-gradient(rgba(192, 132, 252, 0.14) 0.5px, transparent 0.5px);
-  background-size: 5px 5px;
-  mix-blend-mode: soft-light;
+  opacity: 0.12;
+  background-image: radial-gradient(rgba(192, 132, 252, 0.12) 0.5px, transparent 0.5px);
+  background-size: 6px 6px;
   z-index: 100;
+}
+
+@media (max-width: 1023px) {
+  body::before {
+    display: none; /* Disable full-screen pattern compositing on mobile for 60fps responsiveness */
+  }
 }
 
 button, input, textarea {

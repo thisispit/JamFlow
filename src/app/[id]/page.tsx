@@ -325,10 +325,10 @@ export default function RoomPage() {
   return (
     <main className="relative h-[100dvh] bg-[#0A0B12] flex flex-col overflow-hidden text-zinc-100 selection:bg-[#8B5CF6]/30">
 
-      {/* Ambient glow */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+      {/* Ambient glow (Desktop only to keep mobile 60fps) */}
+      <div className="hidden sm:block pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div
-          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[380px] rounded-full opacity-25 blur-[120px]"
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[380px] rounded-full opacity-25 blur-[120px] transform-gpu"
           style={{ background: 'radial-gradient(ellipse at center, rgba(139, 92, 246, 0.5) 0%, rgba(217, 70, 239, 0.18) 50%, transparent 70%)' }}
         />
       </div>
