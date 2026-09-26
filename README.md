@@ -25,7 +25,6 @@ JamFlow is a modern web application that allows multiple users to join temporary
 - **Authoritative Server State**: Playback position, state (`playing` / `paused`), and epoch timestamps are tracked on the server.
 - **Automatic Drift Compensation**: Clients continually compute expected time (`position + elapsed`) and smoothly seek if drift exceeds threshold.
 - **Browser Autoplay Handling**: Modern browsers restrict unmuted autoplay without user interaction. JamFlow includes an interactive "Click to Join Audio & Sync" overlay to ensure users never get stuck in a broken silent state.
-- **Sync Status Indicator**: Real-time status badge with drift monitor (ms) and a manual "Sync with Host" trigger.
 
 ### Phase 4 — Collaborative Features
 - **Shared Synchronized Queue**: Add tracks, reorder, delete, and auto-advance to the next video when the current song finishes.
