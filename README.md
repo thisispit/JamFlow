@@ -2,6 +2,17 @@
 
 > **Real-Time Collaborative Listening Platform** — Listen together in synchronized harmony.
 
+<p align="center">
+  <a href="public/jamflow-demo.mp4">
+    <img src="public/jamflow-demo.gif" alt="JamFlow Real-Time Demo Preview" width="100%" />
+  </a>
+</p>
+
+<p align="center">
+  <em>✨ Experience real-time rooms, synchronized audio with 0.0ms drift, and floating emoji reactions.</em><br />
+  <sub>🎥 <a href="public/jamflow-demo.mp4"><b>Watch Full 1080p Launch Video with Audio</b></a> &bull; 🖼️ <a href="public/jamflow-demo.jpg">Poster Frame</a></sub>
+</p>
+
 JamFlow is a modern web application that allows multiple users to join temporary rooms and listen to YouTube music and videos in real time with synchronized playback, shared queues, live chat, floating reactions, and host permissions.
 
 ---
