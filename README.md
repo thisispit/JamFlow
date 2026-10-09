@@ -1,4 +1,4 @@
-# JamFlow 🎵
+# JamFlow
 
 > **Real-Time Collaborative Listening Platform** — Listen together in synchronized harmony.
 
